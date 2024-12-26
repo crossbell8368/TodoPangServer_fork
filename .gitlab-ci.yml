@@ -1,0 +1,43 @@
+stages:
+  - build
+  - deploy
+
+build_job:
+  stage: build
+  image: gradle:8.10-jdk11
+  script:
+    - echo "Building the Java SpringBoot application with Gradle"
+    - gradle clean build -x test
+  artifacts:
+    paths:
+      - build/libs/*.jar
+    expire_in: 1 day
+
+deploy_job:
+  stage: deploy
+  image: ubuntu:latest
+  before_script:
+    - apt update && apt install -y openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan -p $SSH_PORT -H $SSH_HOST >> ~/.ssh/known_hosts
+  script:
+    - echo "Stopping any existing Spring Boot application..."
+    - ssh -i ~/.ssh/id_ed25519 $FTP_USER@$SSH_HOST -p $SSH_PORT'
+        pgrep -f "java.*todopangServer" && 
+        pkill -f "java.*todopangServer" || 
+        echo "No existing process found"
+
+    - echo "Copying the new .jar file to the server..."
+    - scp -i ~/.ssh/id_ed25519 -p $SSH_PORT build/libs/todopangServer-*.jar $FTP_USER@$SSH_HOST:/mnt/workspace/todopangServer.jar
+
+    - echo "Starting the Spring Boot application in the background..."
+    - ssh -i ~/.ssh/id_ed25519 $FTP_USER@$SSH_HOST -p $SSH_PORT'
+        nohup java -jar /mnt/workspace/todopangServer.jar > /mnt/workspace/app.log 2>&1 &
+      '
+    - echo "Deployment complete! Verifying the application is running..."
+    - ssh -i ~/.ssh/id_ed25519 $FTP_USER@$SSH_HOST -p $SSH_PORT'
+        sleep 5 &&
+        pgrep -f "java.*todopangServer" && echo "Application is running" || echo "Application failed to start"
+      '
