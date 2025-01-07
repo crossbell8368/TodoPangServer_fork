@@ -113,6 +113,9 @@ fabric.properties
 # https://plugins.jetbrains.com/plugin/8053-azure-toolkit-for-intellij
 .idea/**/azureSettings.xml
 
+# Ignore InfelliJ setting
+.idea/
+
 #======================
 ### Java ###
 #======================
@@ -277,6 +280,7 @@ local.properties
 
 ##### secret properties
 /src/main/resources/application-secret.properties
+build/resources/main/application.properties
 
 #==================================
 # Add by CrossBell (24.12.26)
@@ -305,6 +309,9 @@ gradle-app.setting
 #==================================
 # Add by CrossBell (25.01.07)
 #==================================
+### firebase ###
+src/main/resources/todopang-firebase-key.json
+
 ### docker ###
 docker/.env
 docker/*.tar
