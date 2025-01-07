@@ -1,0 +1,6 @@
+
+# Build
+
+docker build --platform linux/amd64 -t todopang-server-amd \
+  --build-arg ROOT_PASSWORD=$(grep ROOT_PASSWORD .env | cut -d '=' -f2) \
+  --build-arg SERVICE_PASSWORD=$(grep SERVICE_PASSWORD .env | cut -d '=' -f2) .
