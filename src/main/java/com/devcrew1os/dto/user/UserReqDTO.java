@@ -18,7 +18,7 @@ public class UserReqDTO {
         private String userId;
         private String name;
         private String email;
-        private String socialType;
+        private Integer socialType;
     }
 
     /*===========================

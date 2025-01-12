@@ -1,4 +1,4 @@
-package com.devcrew1os.util;
+package com.devcrew1os.common.util;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
@@ -59,20 +59,26 @@ public class Response<T> {
         return buildBody(data, message, status, ResponseResult.SUCCESS);
     }
 
+    // Message & Data
     public ResponseEntity<Body<T>> success(T data, String message) {
         return success(data, message, HttpStatus.OK);
     }
 
+    // Data Only
     public ResponseEntity<Body<T>> success(T data) {
-        return success(data, null, HttpStatus.OK);
+        return success(data, "[Response] Successfully processing request!", HttpStatus.OK);
     }
 
+    // Message Only
     public ResponseEntity<Body<T>> success(String message) {
-        return success(null, message, HttpStatus.OK);
+        T data = (T) Boolean.TRUE;
+        return success(data, message, HttpStatus.OK);
     }
 
+    // Status Only
     public ResponseEntity<Body<T>> success() {
-        return success(null, null, HttpStatus.OK);
+        T data = (T) Boolean.TRUE;
+        return success(data, "[Response] Successfully processing request!", HttpStatus.OK);
     }
 
     /*===========================
@@ -83,15 +89,21 @@ public class Response<T> {
         return buildBody(data, message, status, ResponseResult.FAIL);
     }
 
+    // Message & Status
     public ResponseEntity<Body<T>> fail(String message, HttpStatus status) {
-        return fail(null, message, status);
+        T data = (T) Boolean.FALSE;
+        return fail(data, message, status);
     }
 
+    // Message: Bad Request
     public ResponseEntity<Body<T>> fail(String message) {
-        return fail(null, message, HttpStatus.BAD_REQUEST);
+        T data = (T) Boolean.FALSE;
+        return fail(data, message, HttpStatus.BAD_REQUEST);
     }
 
+    // Status: ServerError
     public ResponseEntity<Body<T>> fail() {
-        return fail(null, "An error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
+        T data = (T) Boolean.FALSE;
+        return fail(data, "[Response] Failed to processing request!", HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
