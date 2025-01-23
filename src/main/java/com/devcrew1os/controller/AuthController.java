@@ -1,5 +1,7 @@
 package com.devcrew1os.controller;
 
+import com.devcrew1os.common.util.Response;
+import com.devcrew1os.common.util.Result;
 import com.devcrew1os.dto.user.UserReqDTO;
 import com.devcrew1os.service.AuthService;
 import com.devcrew1os.service.UserService;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Auth", description = "인증 관련 API")
 public class AuthController {
 
+    private Response<?> response;
     private final AuthService authService;
     private final UserService userService;
 
@@ -29,7 +32,8 @@ public class AuthController {
             @RequestBody UserReqDTO.Login dto
     ) {
         String idToken = token.replace("Bearer ", "");
-        return authService.login(dto, idToken);
+        Result result = authService.login(dto, idToken);
+        return response.handleResult(result);
     }
 
     /*===========================
@@ -39,6 +43,18 @@ public class AuthController {
     public ResponseEntity<?> signup(
             @RequestBody UserReqDTO.Signup dto
     ) {
-        return userService.signup(dto);
+        Result result = userService.signup(dto);
+        return response.handleResult(result);
+    }
+
+    /*===========================
+       회원탈퇴
+    ===========================*/
+    @PostMapping("/withdraw")
+    public ResponseEntity<?> withdraw(
+            @RequestBody UserReqDTO.Withdraw dto
+    ) {
+        Result result = userService.withdraw(dto);
+        return response.handleResult(result);
     }
 }

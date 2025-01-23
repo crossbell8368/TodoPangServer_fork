@@ -115,6 +115,36 @@ public class SwaggerConfig {
                             + "\"data\":false"
                             + "}"
             ));
+
+            // 2. Withdraw
+        } else if (path.contains("/withdraw")) {
+            responses.addApiResponse("200", createApiResponse(
+                    "회원탈퇴 성공",
+                    "{"
+                            + "\"status\":200,"
+                            + "\"result\":\"SUCCESS\","
+                            + "\"message\":\"Successfully withdraw user\","
+                            + "\"data\": true"
+                            + "}"
+            ));
+            responses.addApiResponse("400", createApiResponse(
+                    "잘못된 요청 데이터",
+                    "{"
+                            + "\"status\":400,"
+                            + "\"result\":\"FAIL\","
+                            + "\"message\":\"Invalid argument detected during withdraw\","
+                            + "\"data\": false"
+                            + "}"
+            ));
+            responses.addApiResponse("500", createApiResponse(
+                    "서버 오류",
+                    "{"
+                            + "\"status\":500,"
+                            + "\"result\":\"FAIL\","
+                            + "\"message\":\"Unexpected error during withdraw\","
+                            + "\"data\":false"
+                            + "}"
+            ));
         }
     }
 

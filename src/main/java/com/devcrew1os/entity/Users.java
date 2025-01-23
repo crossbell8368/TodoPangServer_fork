@@ -18,36 +18,55 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Users {
 
+    /*===========================
+       Parameter
+    ===========================*/
     @Id
     @Column(name = "user_id", nullable = false, unique = true)
-    private String userId; // 필드 이름을 카멜 케이스로 변경
+    private String userId;
 
     @Column(name = "user_email", nullable = false, unique = true)
-    private String userEmail; // 카멜 케이스로 변경
+    private String userEmail;
 
     @Column(name = "user_name", nullable = false)
-    private String userName; // 카멜 케이스로 변경
+    private String userName;
 
     @Column(name = "user_social_type")
     @Convert(converter = UserSocialTypeConverter.class)
-    private UserSocialType userSocialType; // 카멜 케이스로 변경
+    private UserSocialType userSocialType;
 
     @Column(name = "user_status")
     @Convert(converter = UserStatusConverter.class)
-    private UserStatus userStatus; // 카멜 케이스로 변경
+    private UserStatus userStatus;
 
     @Column(name = "user_created_at", nullable = false, updatable = false)
-    private LocalDateTime userCreatedAt; // 카멜 케이스로 변경
+    private LocalDateTime userCreatedAt;
 
     @Column(name = "user_updated_at")
-    private LocalDateTime userUpdatedAt; // 카멜 케이스로 변경
+    private LocalDateTime userUpdatedAt;
 
     @Column(name = "user_deleted_at")
-    private LocalDateTime userDeletedAt; // 카멜 케이스로 변경
+    private LocalDateTime userDeletedAt;
 
     @Column(name = "user_last_login_at")
-    private LocalDateTime userLastLoginAt; // 카멜 케이스로 변경
+    private LocalDateTime userLastLoginAt;
 
     @Column(name = "user_last_logout_at")
-    private LocalDateTime userLastLogoutAt; // 카멜 케이스로 변경
+    private LocalDateTime userLastLogoutAt;
+
+    /*===========================
+       Function
+    ===========================*/
+    public void updateUserStatus(UserStatus userStatus) {
+
+        // shared
+        this.userStatus = userStatus;
+        this.userUpdatedAt = LocalDateTime.now();
+
+        // withdraw
+        if (userStatus == UserStatus.DELETED) {
+            this.userDeletedAt = LocalDateTime.now();
+            this.userLastLoginAt = LocalDateTime.now();
+        }
+    }
 }

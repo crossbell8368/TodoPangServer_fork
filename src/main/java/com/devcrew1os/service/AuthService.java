@@ -1,11 +1,10 @@
 package com.devcrew1os.service;
 
+import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.common.util.Result;
 import com.devcrew1os.dto.user.UserReqDTO;
 import com.devcrew1os.common.util.Response;
 import com.devcrew1os.repository.UserRepository;
-import com.google.firebase.ErrorCode;
-import com.google.firebase.FirebaseException;
-import com.google.firebase.auth.AuthErrorCode;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -14,8 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import javax.persistence.PersistenceException;
@@ -34,30 +31,30 @@ public class AuthService {
     /*===========================
        사용자 로그인
     ===========================*/
-    public ResponseEntity<?> login(UserReqDTO.Login dto, String idToken) {
+    public Result login(UserReqDTO.Login dto, String idToken) {
         try {
             // Token verified
             if (!verifyIdToken(idToken, dto.getUserId())) {
-                return response.fail("[Response] Provided IdToken UID mismatched", HttpStatus.UNAUTHORIZED);
+                return Result.failure("Provided IdToken UID mismatched", com.devcrew1os.common.enums.ErrorCode.INVALID_TOKEN);
             }
             // DB verified
             if(!checkData(dto.getUserId())) {
                 logger.info("[AuthService] Failed to search registered userData: {}", dto.getUserId());
-                return response.fail("[Response] Failed to search Registered UserID", HttpStatus.UNAUTHORIZED);
+                return Result.failure("Failed to search registered UserID", com.devcrew1os.common.enums.ErrorCode.USER_NOT_FOUND);
             }
             // Success
             logger.info("[AuthService] Successfully logged in : {}", dto.getUserId());
-            return response.success("[Response] Successfully Logged in!");
+            return Result.success("Successfully Logged in!");
 
         } catch (FirebaseAuthException err) {
             // FirebaseAuth
             logger.error("[AuthService] Firebase authentication error: {}", err.getMessage());
-            return response.fail("[Response] Authentication failed: Firebase error", HttpStatus.UNAUTHORIZED);
+            return Result.failure("Authentication failed", com.devcrew1os.common.enums.ErrorCode.UNAUTHORIZED);
 
         } catch (Exception err) {
             // Etc
             logger.error("[AuthService] Unexpected error during login: {}", err.getMessage());
-            return response.fail("[Response] Internal server error: Unexpected error", HttpStatus.INTERNAL_SERVER_ERROR);
+            return Result.failure("Internal server error", ErrorCode.INTERNAL_ERROR);
         }
     }
 

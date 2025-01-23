@@ -30,4 +30,12 @@ public class UserReqDTO {
         private String userId;
     }
 
+    /*===========================
+        회웥탈퇴
+    ===========================*/
+    @Getter
+    public static class Withdraw {
+        private String userId;
+        private Integer withdrawReason;
+    }
 }

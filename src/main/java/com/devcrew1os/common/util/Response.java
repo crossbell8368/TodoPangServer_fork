@@ -6,26 +6,16 @@ import lombok.Getter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-
 @Component
-@Schema(name = "Response", description = "공통 API 응답 객체")
 public class Response<T> {
 
     @Getter
     @Builder
-    @Schema(name = "ResponseBody", description = "공통 API 응답 Body")
     public static class Body<T> {
 
-        @Schema(description = "HTTP 상태 코드", example = "200")
         private final int status;
-
-        @Schema(description = "응답 결과 (SUCCESS 또는 FAIL)", example = "SUCCESS")
         private final ResponseResult result;
-
-        @Schema(description = "응답 메시지", example = "요청이 성공적으로 처리되었습니다.")
         private final String message;
-
-        @Schema(description = "실제 데이터 객체")
         private final T data;
     }
 
@@ -33,14 +23,14 @@ public class Response<T> {
        응답 상태 Enum
     ===========================*/
 
-    @Schema(enumAsRef = true, description = "응답 결과 상태", example = "SUCCESS")
-    public enum ResponseResult {
+    private enum ResponseResult {
         SUCCESS, FAIL
     }
 
     /*===========================
        응답 Body 생성
     ===========================*/
+
     private <T> ResponseEntity<Body<T>> buildBody(T data, String msg, HttpStatus status, ResponseResult result) {
         Body<T> body = Body.<T>builder()
                 .status(status.value())
@@ -55,28 +45,24 @@ public class Response<T> {
        Success
     ===========================*/
 
-    public ResponseEntity<Body<T>> success(T data, String message, HttpStatus status) {
+    private ResponseEntity<Body<T>> success(T data, String message, HttpStatus status) {
         return buildBody(data, message, status, ResponseResult.SUCCESS);
     }
 
-    // Message & Data
-    public ResponseEntity<Body<T>> success(T data, String message) {
+    private ResponseEntity<Body<T>> success(T data, String message) {
         return success(data, message, HttpStatus.OK);
     }
 
-    // Data Only
-    public ResponseEntity<Body<T>> success(T data) {
+    private ResponseEntity<Body<T>> success(T data) {
         return success(data, "[Response] Successfully processing request!", HttpStatus.OK);
     }
 
-    // Message Only
-    public ResponseEntity<Body<T>> success(String message) {
+    private ResponseEntity<Body<T>> success(String message) {
         T data = (T) Boolean.TRUE;
         return success(data, message, HttpStatus.OK);
     }
 
-    // Status Only
-    public ResponseEntity<Body<T>> success() {
+    private ResponseEntity<Body<T>> success() {
         T data = (T) Boolean.TRUE;
         return success(data, "[Response] Successfully processing request!", HttpStatus.OK);
     }
@@ -85,25 +71,35 @@ public class Response<T> {
        Fail
     ===========================*/
 
-    public ResponseEntity<Body<T>> fail(T data, String message, HttpStatus status) {
+    private ResponseEntity<Body<T>> fail(T data, String message, HttpStatus status) {
         return buildBody(data, message, status, ResponseResult.FAIL);
     }
 
-    // Message & Status
-    public ResponseEntity<Body<T>> fail(String message, HttpStatus status) {
+    private ResponseEntity<Body<T>> fail(String message, HttpStatus status) {
         T data = (T) Boolean.FALSE;
         return fail(data, message, status);
     }
 
-    // Message: Bad Request
-    public ResponseEntity<Body<T>> fail(String message) {
+    private ResponseEntity<Body<T>> fail(String message) {
         T data = (T) Boolean.FALSE;
         return fail(data, message, HttpStatus.BAD_REQUEST);
     }
 
-    // Status: ServerError
-    public ResponseEntity<Body<T>> fail() {
+    private ResponseEntity<Body<T>> fail() {
         T data = (T) Boolean.FALSE;
         return fail(data, "[Response] Failed to processing request!", HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    /*===========================
+       Result 객체 처리
+    ===========================*/
+
+    public ResponseEntity<?> handleResult(Result result) {
+        if (result.isSuccess()) {
+            return result.getMessage() == null
+                    ? success()
+                    : success(result.getMessage());
+        }
+        return fail(result.getMessage(), result.getErrorCode().getHttpStatus());
     }
 }
