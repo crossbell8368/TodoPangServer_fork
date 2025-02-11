@@ -9,7 +9,9 @@ import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OpenApiCustomiser;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -17,14 +19,19 @@ import org.springframework.http.MediaType;
 @Configuration
 public class SwaggerConfig {
 
+    @Value("${devcrew1os.api.url}")
+    private String apiURL;
+
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
                 .info(new Info()
                         .title("Todopang Server API")
                         .version("1.0")
-                        .description("Todopang Server API documentation")
-                );
+                        .description("Todopang Server API documentation"))
+                .servers(List.of(
+                        new Server().url(apiURL)
+                ));
     }
 
     @Bean
