@@ -1,16 +1,13 @@
-package com.devcrew1os.dto;
+package com.devcrew1os.dto.auth;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 @AllArgsConstructor
-@Builder
-public class AuthDTO {
+public class WithdrawReq {
     private String userId;
-    private String userName;
-    private String userEmail;
+    private Integer reason;
 }

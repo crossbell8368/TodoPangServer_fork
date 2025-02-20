@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 
 @Getter
 public enum ErrorCode {
+    OK(HttpStatus.OK),
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED),
     DUPLICATE_USER(HttpStatus.CONFLICT),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND),
