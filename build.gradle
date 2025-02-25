@@ -35,9 +35,6 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // Documentation
-    implementation 'org.springdoc:springdoc-openapi-ui:1.6.11'
-
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }

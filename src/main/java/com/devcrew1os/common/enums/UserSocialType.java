@@ -3,6 +3,11 @@ package com.devcrew1os.common.enums;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @Getter
 @RequiredArgsConstructor
 public enum UserSocialType {
@@ -12,13 +17,18 @@ public enum UserSocialType {
 
     private final int value;
 
+    private static final Map<Integer, UserSocialType> VALUE_MAP =
+            Stream.of(UserSocialType.values()).collect(Collectors.toMap(type -> type.value, type -> type));
+
+    public static boolean contains(int value) {
+        return VALUE_MAP.containsKey(value);
+    }
+
     public static UserSocialType fromValue(int value) {
-        for (UserSocialType userSocialType : UserSocialType.values()) {
-            if (userSocialType.value == value) {
-                return userSocialType;
-            }
+        UserSocialType userSocialType = VALUE_MAP.get(value);
+        if (userSocialType == null) {
+            throw new IllegalArgumentException("Invalid UserSocialType value: " + value);
         }
-        //TODO: add exception
-        return null;
+        return userSocialType;
     }
 }

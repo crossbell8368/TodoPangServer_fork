@@ -2,20 +2,14 @@ package com.devcrew1os.controller;
 
 import com.devcrew1os.common.util.Response;
 import com.devcrew1os.dto.auth.*;
-import com.devcrew1os.service.AuthService;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.enums.ParameterIn;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import com.devcrew1os.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/auth")
-@Tag(name = "Auth", description = "인증 관련 API")
 public class AuthController {
 
     private final Response<?> response;
@@ -37,7 +31,6 @@ public class AuthController {
     ===========================*/
     @PostMapping("/login")
     public ResponseEntity<?> login(
-            @Parameter(name = "Authorization", description = "FirebaseAuth IdToken", required = true, in = ParameterIn.HEADER)
             @RequestHeader("Authorization") String token,
             @RequestBody LoginReq req
     ) {

@@ -12,25 +12,15 @@ import org.springframework.web.filter.ForwardedHeaderFilter;
 @Configuration
 public class SecurityConfig {
 
-    @Value("${springdoc.api-docs.path}")
-    private String apiUrl;
-    @Value("${springdoc.swagger-ui.path}")
-    private String indexUrl;
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors()
                 .and()
-                .authorizeRequests()
-                .antMatchers( apiUrl, indexUrl )
-                 .authenticated()
-                 .anyRequest().permitAll()
-                 .and()
-                 .httpBasic()
-                 .and()
-                 .csrf().disable();
-
+                 .csrf().disable()
+                .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll()
+        );
         return http.build();
     }
 

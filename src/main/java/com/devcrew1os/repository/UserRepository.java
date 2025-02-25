@@ -15,9 +15,4 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<Users, Long> {
     boolean existsByUserId(String userId);
     Optional<Users> findByUserId(String userId);
-
-    @Transactional
-    @Modifying
-    @Query("UPDATE Users u SET u.userStatus = :status WHERE u.userId = :userId")
-    int updateUserStatus(@Param("userId") String userId, @Param("status") UserStatus status);
 }
