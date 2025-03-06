@@ -29,7 +29,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-admin:8.1.0'
 
     // Database
-    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'org.postgresql:postgresql:42.3.8'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'

@@ -93,7 +93,6 @@ public class AuthService {
             logger.warn("[AuthService][{}] Request UserID already exists, at Signup", req.getUserId());
             return false;
         }
-        res.setError(ErrorCode.OK);
         res.addMessage("[Success] Valid UserId");
         logger.info("[AuthService][{}] Valid UserId, at Signup", req.getUserId());
         return true;
@@ -118,10 +117,11 @@ public class AuthService {
                 .statUserDeletedAt(now)
                 .statUserLastLoginAt(now)
                 .statUserLastLogoutAt(now)
-                .statRegistedProjects(0)
+                .statFinishedChallenges(0)
+                .statRegisteredProjects(0)
                 .statFinishedProjects(0)
                 .statFailedProjects(0)
-                .statRegistedTodos(0)
+                .statRegisteredTodos(0)
                 .statFinishedTodos(0)
                 .build();
     }

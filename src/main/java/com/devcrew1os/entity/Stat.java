@@ -1,7 +1,6 @@
 package com.devcrew1os.entity;
 
 import lombok.*;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -45,8 +44,11 @@ public class Stat {
     @Column(name = "stat_user_last_logout_at", nullable = false)
     private LocalDateTime statUserLastLogoutAt;
 
-    @Column(name = "stat_registed_projects", nullable = false)
-    private int statRegistedProjects;
+    @Column(name = "stat_finished_challenges", nullable = false)
+    private int statFinishedChallenges;
+
+    @Column(name = "stat_registered_projects", nullable = false)
+    private int statRegisteredProjects;
 
     @Column(name = "stat_finished_projects", nullable = false)
     private int statFinishedProjects;
@@ -54,13 +56,10 @@ public class Stat {
     @Column(name = "stat_failed_projects", nullable = false)
     private int statFailedProjects;
 
-    @Column(name = "stat_registed_todos", nullable = false)
-    private int statRegistedTodos;
+    @Column(name = "stat_registered_todos", nullable = false)
+    private int statRegisteredTodos;
 
     @Column(name = "stat_finished_todos", nullable = false)
     private int statFinishedTodos;
 
-    /*===========================
-       Function
-    ===========================*/
 }
