@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class LoginRes extends AbstractResponse {
 
-    public LoginRes(boolean status, String message, ErrorCode errorCode) {
-        super(status, message, errorCode);
+    public LoginRes(boolean isSuccess, String message, ErrorCode errorCode) {
+        super(isSuccess, false, message, errorCode);
     }
 }

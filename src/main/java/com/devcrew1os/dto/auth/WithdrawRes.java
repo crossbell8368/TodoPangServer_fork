@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class WithdrawRes extends AbstractResponse {
 
-    public WithdrawRes(boolean success, String message, ErrorCode errorCode) {
-        super(success, message, errorCode);
+    public WithdrawRes(boolean isSuccess, String message, ErrorCode errorCode) {
+        super(isSuccess, false, message, errorCode);
     }
 }

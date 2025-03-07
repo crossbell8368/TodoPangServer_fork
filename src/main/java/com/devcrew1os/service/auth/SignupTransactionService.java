@@ -42,7 +42,7 @@ public class SignupTransactionService {
 
         } catch (DataAccessException err) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            res.setError(ErrorCode.DATABASE_ERROR);
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Failed to save " + entity + " data.");
             logger.error("[AuthTransaction][{}] Transaction({}) failed, rolling back: {}", userId, entity, err.getMessage());
             throw err;

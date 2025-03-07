@@ -54,7 +54,7 @@ public class AuthService {
         // 4. DB 적용
         signupTrans.saveUserData(newUser,newStat, res);
 
-        res.setStatus(true);
+        res.setSuccess(true);
         res.addMessage("[Info] Signup successful");
         logger.info("[AuthService][{}] Signup successful", req.getUserId());
         return res;
@@ -76,7 +76,7 @@ public class AuthService {
             errors.add("[Failed] SocialType must not be null or must be specified value");
         }
         if (!errors.isEmpty()) {
-            res.setError(ErrorCode.BAD_REQUEST);
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
             logger.error("[AuthService][{}] Invalid argument detected during signupReq: {}", req.getUserId(), res.getMessage());
             return false;
@@ -88,7 +88,7 @@ public class AuthService {
 
     private boolean isUserIdExist(SignupReq req, SignupRes res) {
         if (userRepo.existsByUserId(req.getUserId())) {
-            res.setError(ErrorCode.DUPLICATE_USER);
+            res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request UserID already exists");
             logger.warn("[AuthService][{}] Request UserID already exists, at Signup", req.getUserId());
             return false;
@@ -148,7 +148,7 @@ public class AuthService {
         // 5. 정보 업데이트
         if (!updateStatData(userStat, req, res)) return res;
 
-        res.setStatus(true);
+        res.setSuccess(true);
         res.addMessage("[Info] Login successful");
         logger.info("[AuthService][{}] Login successful", req.getUserId());
         return res;
@@ -165,7 +165,7 @@ public class AuthService {
         }
 
         if (!errors.isEmpty()) {
-            res.setError(ErrorCode.BAD_REQUEST);
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
             logger.error("[AuthService][{}] Invalid login request: {}", req.getUserId(), res.getMessage());
             return false;
@@ -179,7 +179,7 @@ public class AuthService {
         try {
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(req.getIdToken());
             if (!Objects.equals(decodedToken.getUid(), req.getUserId())) {
-                res.setError(ErrorCode.INVALID_TOKEN);
+                res.setErrorCode(ErrorCode.INVALID_TOKEN);
                 res.addMessage("[Failed] Provided IdToken UID mismatched");
                 logger.warn("[AuthService][{}] Provided IdToken UID mismatched for user", req.getUserId());
                 return false;
@@ -188,7 +188,7 @@ public class AuthService {
             logger.info("[AuthService][{}] Successfully verified IdToken for user", req.getUserId());
             return true;
         } catch (FirebaseAuthException err) {
-            res.setError(ErrorCode.FIREBASE_ERROR);
+            res.setErrorCode(ErrorCode.FIREBASE_ERROR);
             res.addMessage("[Failed] Firebase authentication failed");
             logger.error("[AuthService][{}] Firebase authentication error for user({}): {}", req.getUserId(), req.getIdToken(), err.getMessage());
             return false;
@@ -201,7 +201,7 @@ public class AuthService {
             logger.info("[AuthService][{}] User(Info) exists, at Login", req.getUserId());
             return true;
         }
-        res.setError(ErrorCode.USER_NOT_FOUND);
+        res.setErrorCode(ErrorCode.USER_NOT_FOUND);
         res.addMessage("[Failed] User(Info) not found");
         logger.warn("[AuthService][{}] User(Info) not found, at Login", req.getUserId());
         return false;
@@ -214,7 +214,7 @@ public class AuthService {
             logger.info("[AuthService][{}] User(Stat) exists, at Login", req.getUserId());
             return userStat;
         } catch (RuntimeException err) {
-            res.setError(ErrorCode.USER_NOT_FOUND);
+            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
             res.addMessage("[Failed] User(Stat) not found");
             logger.warn("[AuthService][{}] User(Stat) not found, at Login", req.getUserId());
             return null;
@@ -236,7 +236,7 @@ public class AuthService {
             return true;
 
         } catch (Exception err) {
-            res.setError(ErrorCode.DATABASE_ERROR);
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Failed to update stat data");
             logger.error("[AuthService][{}] Failed to update stat data for user: {}", req.getUserId(), err.getMessage());
             return false;
@@ -269,7 +269,7 @@ public class AuthService {
         // 4. 데이터베이스 상태값 변경
         if(!deleteUserAtDatabase(req, res)) return res;
 
-        res.setStatus(true);
+        res.setSuccess(true);
         res.addMessage("[Info] Withdraw successful");
         logger.info("[AuthService][{}] Withdraw successful", req.getUserId());
         return res;
@@ -285,7 +285,7 @@ public class AuthService {
             errors.add("[Failed] Reason must not be null");
         }
         if (!errors.isEmpty()) {
-            res.setError(ErrorCode.BAD_REQUEST);
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
             logger.error("[AuthService][{}] Invalid argument detected, while withdrawReq: {}", req.getUserId(), res.getMessage());
             return false;
@@ -297,7 +297,7 @@ public class AuthService {
 
     private boolean isUserIdExist(WithdrawReq req, WithdrawRes res) {
         if (!userRepo.existsByUserId(req.getUserId())) {
-            res.setError(ErrorCode.USER_NOT_FOUND);
+            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
             res.addMessage("[Failed] User not found");
             logger.warn("[AuthService][{}] User not found, at withDraw", req.getUserId());
             return false;
@@ -314,7 +314,7 @@ public class AuthService {
             logger.info("[AuthService][{}] Successfully delete user at firebase", req.getUserId());
             return true;
         } catch (FirebaseAuthException err) {
-            res.setError(ErrorCode.FIREBASE_ERROR);
+            res.setErrorCode(ErrorCode.FIREBASE_ERROR);
             res.addMessage("[Failed] Failed to delete user at Firebase");
             logger.error("[AuthService][{}] Failed to delete user at Firebase: {}", req.getUserId(), err.getMessage());
             return false;
@@ -328,13 +328,13 @@ public class AuthService {
                 logger.info("[AuthService][{}] Successfully change user status to deleted", req.getUserId());
                 return true;
             } else {
-                res.setError(ErrorCode.USER_NOT_FOUND);
+                res.setErrorCode(ErrorCode.USER_NOT_FOUND);
                 res.addMessage("[Failed] User not found, while change user status to deleted");
                 logger.warn("[AuthService][{}] User not found, while change user status to deleted", req.getUserId());
                 return false;
             }
         } catch (DataAccessException err) {
-            res.setError(ErrorCode.DATABASE_ERROR);
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Database connection error, while change user status to deleted");
             logger.error("[AuthService][{}] Database connection error, while change user status to deleted: {}", req.getUserId(), err.getMessage());
             return false;

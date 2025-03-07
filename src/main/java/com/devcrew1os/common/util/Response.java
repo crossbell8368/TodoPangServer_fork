@@ -1,8 +1,11 @@
 package com.devcrew1os.common.util;
 
+import com.devcrew1os.dto.AbstractResponse;
 import com.devcrew1os.dto.auth.LoginRes;
 import com.devcrew1os.dto.auth.SignupRes;
 import com.devcrew1os.dto.auth.WithdrawRes;
+import com.devcrew1os.dto.home.HomeRes;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
@@ -14,6 +17,7 @@ public class Response<T> {
 
     @Getter
     @Builder
+    @AllArgsConstructor
     public static class Body<T> {
         private final int status;
         private final ResponseResult result;
@@ -30,32 +34,27 @@ public class Response<T> {
     }
 
     /*===========================
-       응답 Body 생성
-    ===========================*/
-
-    @SuppressWarnings("unchecked")
-    private <T> ResponseEntity<Body<T>> buildBody(T data, String msg, HttpStatus status, ResponseResult result) {
-        T responseData = (data == null) ? (T) (result == ResponseResult.SUCCESS ? Boolean.TRUE : Boolean.FALSE) : data;
-
-        return ResponseEntity.status(status)
-                .body(Body.<T>builder()
-                        .status(status.value())
-                        .result(result)
-                        .message(msg)
-                        .data(responseData)
-                        .build());
-    }
-
-    /*===========================
        Response 분기
     ===========================*/
 
-    private ResponseEntity<Body<T>> success(T data, String message, HttpStatus status) {
-        return buildBody(data, message, status, ResponseResult.SUCCESS);
+    private <T> ResponseEntity<Body<T>> success(HttpStatus isSuccess, String message, Class<T> dataType, T data) {
+        return ResponseEntity.status(isSuccess)
+                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, data));
     }
 
-    private ResponseEntity<Body<T>> fail(T data, String message, HttpStatus status) {
-        return buildBody(data, message, status, ResponseResult.FAIL);
+    private <T> ResponseEntity<Body<T>> success(HttpStatus isSuccess, String message) {
+        return ResponseEntity.status(isSuccess)
+                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, (T) Boolean.TRUE));
+    }
+
+    private <T> ResponseEntity<Body<T>> failed(HttpStatus isSuccess, String message, Class<T> dataType, T data) {
+        return ResponseEntity.status(isSuccess)
+                .body(new Body<>(isSuccess.value(), ResponseResult.FAIL, message, data));
+    }
+
+    private <T> ResponseEntity<Body<T>> failed(HttpStatus isSuccess, String message) {
+        return ResponseEntity.status(isSuccess)
+                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, (T) Boolean.FALSE));
     }
 
     /*===========================
@@ -63,20 +62,20 @@ public class Response<T> {
     ===========================*/
 
     public ResponseEntity<?> handleResult(SignupRes res) {
-        return res.isStatus()
-                ? success(null, res.getMessage(), res.getErrorCode().getHttpStatus())
-                : fail(null, res.getMessage(), res.getErrorCode().getHttpStatus());
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 
     public ResponseEntity<?> handleResult(LoginRes res) {
-        return res.isStatus()
-                ? success(null, res.getMessage(), res.getErrorCode().getHttpStatus())
-                : fail(null, res.getMessage(), res.getErrorCode().getHttpStatus());
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 
     public ResponseEntity<?> handleResult(WithdrawRes res) {
-        return res.isStatus()
-                ? success(null, res.getMessage(), res.getErrorCode().getHttpStatus())
-                : fail(null, res.getMessage(), res.getErrorCode().getHttpStatus());
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 }

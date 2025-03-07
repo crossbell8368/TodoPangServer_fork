@@ -11,7 +11,7 @@ import lombok.ToString;
 @NoArgsConstructor
 public class SignupRes extends AbstractResponse {
 
-    public SignupRes(boolean status, String message, ErrorCode errorCode) {
-        super(status, message, errorCode);
+    public SignupRes(boolean isSuccess, String message, ErrorCode errorCode) {
+        super(isSuccess, false, message, errorCode);
     }
 }
