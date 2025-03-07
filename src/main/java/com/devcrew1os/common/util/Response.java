@@ -4,6 +4,7 @@ import com.devcrew1os.dto.AbstractResponse;
 import com.devcrew1os.dto.auth.LoginRes;
 import com.devcrew1os.dto.auth.SignupRes;
 import com.devcrew1os.dto.auth.WithdrawRes;
+import com.devcrew1os.dto.home.HomeData;
 import com.devcrew1os.dto.home.HomeRes;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,24 +38,19 @@ public class Response<T> {
        Response 분기
     ===========================*/
 
-    private <T> ResponseEntity<Body<T>> success(HttpStatus isSuccess, String message, Class<T> dataType, T data) {
-        return ResponseEntity.status(isSuccess)
-                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, data));
+    private <T> ResponseEntity<Body<T>> success(HttpStatus status, String message, T data) {
+        return ResponseEntity.status(status)
+                .body(new Body<>(status.value(), ResponseResult.SUCCESS, message, data));
     }
 
-    private <T> ResponseEntity<Body<T>> success(HttpStatus isSuccess, String message) {
-        return ResponseEntity.status(isSuccess)
-                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, (T) Boolean.TRUE));
+    private ResponseEntity<Body<T>> success(HttpStatus status, String message) {
+        return ResponseEntity.status(status)
+                .body(new Body<>(status.value(), ResponseResult.SUCCESS, message, (T) Boolean.TRUE));
     }
 
-    private <T> ResponseEntity<Body<T>> failed(HttpStatus isSuccess, String message, Class<T> dataType, T data) {
-        return ResponseEntity.status(isSuccess)
-                .body(new Body<>(isSuccess.value(), ResponseResult.FAIL, message, data));
-    }
-
-    private <T> ResponseEntity<Body<T>> failed(HttpStatus isSuccess, String message) {
-        return ResponseEntity.status(isSuccess)
-                .body(new Body<>(isSuccess.value(), ResponseResult.SUCCESS, message, (T) Boolean.FALSE));
+    private ResponseEntity<Body<T>> failed(HttpStatus status, String message) {
+        return ResponseEntity.status(status)
+                .body(new Body<>(status.value(), ResponseResult.FAIL, message, (T) Boolean.FALSE));
     }
 
     /*===========================
@@ -76,6 +72,12 @@ public class Response<T> {
     public ResponseEntity<?> handleResult(WithdrawRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    public ResponseEntity<?> handleResult(HomeRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 }
