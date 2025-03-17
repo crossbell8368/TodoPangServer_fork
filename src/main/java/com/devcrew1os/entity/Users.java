@@ -1,18 +1,14 @@
 package com.devcrew1os.entity;
 
-import com.devcrew1os.common.enums.UserSocialType;
-import com.devcrew1os.common.enums.UserStatus;
-import com.devcrew1os.common.util.converter.UserSocialTypeConverter;
-import com.devcrew1os.common.util.converter.UserStatusConverter;
 import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_account")
-@Setter
+@Table(name = "user_info")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -31,7 +27,18 @@ public class Users {
     @Column(name = "user_name", nullable = false)
     private String userName;
 
-    @Column(name = "user_social_type")
-    @Convert(converter = UserSocialTypeConverter.class)
-    private UserSocialType userSocialType;
+    @Column(name = "user_social_type", nullable = false)
+    private int socialType;
+
+    @Column(name = "user_status", nullable = false)
+    private int status;
+
+    @Column(name = "user_created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "user_updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @Column(name = "user_deleted_at")
+    private LocalDateTime deletedAt;
 }

@@ -17,11 +17,11 @@ import javax.transaction.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class SignupTransactionService {
+public class SignupTransaction {
 
     private final UserRepository userRepo;
     private final StatRepository statRepo;
-    private static final Logger logger = LoggerFactory.getLogger(SignupTransactionService.class);
+    private static final Logger logger = LoggerFactory.getLogger(SignupTransaction.class);
 
     @Transactional
     public void saveUserData(Users newUser, Stat newStat, SignupRes res) {

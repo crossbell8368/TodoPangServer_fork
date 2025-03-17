@@ -6,7 +6,6 @@ import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.auth.*;
 import com.devcrew1os.entity.Stat;
 import com.devcrew1os.entity.Users;
-import com.devcrew1os.repository.StatRepository;
 import com.devcrew1os.repository.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -27,10 +26,10 @@ import java.util.Objects;
 public class AuthService {
 
     private final UserRepository userRepo;
-    private final StatRepository statRepo;
 
-    private final SignupTransactionService signupTrans;
-    private final LoginTransactionService loginTrans;
+    private final SignupTransaction signupTrans;
+    private final LoginTransaction loginTrans;
+    private final WithdrawTransaction withdrawTrans;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -103,26 +102,23 @@ public class AuthService {
                 .userId(req.getUserId())
                 .userEmail(req.getEmail())
                 .userName(req.getName())
-                .userSocialType(UserSocialType.fromValue(req.getSocialType()))
+                .socialType(req.getSocialType())
+                .status(UserStatus.ACTIVE.getValue())
+                .createdAt(now)
+                .updatedAt(now)
+                .deletedAt(null)
                 .build();
     }
 
     private Stat createStat(SignupReq req, LocalDateTime now) {
         return Stat.builder()
                 .userId(req.getUserId())
-                .statTerm(1)
-                .statUserStatus(UserStatus.ACTIVE.getValue())
-                .statUserCreatedAt(now)
-                .statUserUpdatedAt(now)
-                .statUserDeletedAt(now)
-                .statUserLastLoginAt(now)
-                .statUserLastLogoutAt(now)
-                .statFinishedChallenges(0)
-                .statRegisteredProjects(0)
-                .statFinishedProjects(0)
-                .statFailedProjects(0)
-                .statRegisteredTodos(0)
-                .statFinishedTodos(0)
+                .serviceTerm(1)
+                .lastLoginAt(now)
+                .lastLogoutAt(now)
+                .totalRegisteredChallenges(0)
+                .totalFinishedChallenges(0)
+                .totalSuspendChallenges(0)
                 .build();
     }
 
@@ -225,7 +221,7 @@ public class AuthService {
         try {
             LocalDateTime now = LocalDateTime.now();
 
-            if (!isNewDay(now, userStat.getStatUserLastLoginAt())) {
+            if (!isNewDay(now, userStat.getLastLoginAt())) {
                 res.addMessage("[Success] Stat data already up-to-date");
                 logger.info("[AuthService][{}] Stat data already up-to-date for user", req.getUserId());
                 return true;
@@ -261,13 +257,14 @@ public class AuthService {
         if(!isRequestValid(req, res)) return res;
 
         // 2. ID 값 검증
-        if(!isUserIdExist(req, res)) return res;
+        Users userInfo = getUsersIfExist(req, res);
+        if (userInfo == null) return res;
 
         // 3. FirebaseAuth 제거
         if(!deleteUserAtFirebase(req, res)) return res;
 
         // 4. 데이터베이스 상태값 변경
-        if(!deleteUserAtDatabase(req, res)) return res;
+        if(!deleteUserAtDatabase(userInfo, req, res)) return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Withdraw successful");
@@ -295,16 +292,18 @@ public class AuthService {
         return true;
     }
 
-    private boolean isUserIdExist(WithdrawReq req, WithdrawRes res) {
-        if (!userRepo.existsByUserId(req.getUserId())) {
+    private Users getUsersIfExist(WithdrawReq req, WithdrawRes res) {
+        try {
+            Users userInfo = withdrawTrans.getUsersByUserId(req.getUserId());
+            res.addMessage("[Success] User(Stat) exists");
+            logger.info("[AuthService][{}] User(Info) exists, at Withdraw", req.getUserId());
+            return userInfo;
+        } catch (RuntimeException err) {
             res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-            res.addMessage("[Failed] User not found");
-            logger.warn("[AuthService][{}] User not found, at withDraw", req.getUserId());
-            return false;
+            res.addMessage("[Failed] User(Stat) not found");
+            logger.warn("[AuthService][{}] User(Info) not found, at Withdraw", req.getUserId());
+            return null;
         }
-        res.addMessage("[Success] User ID exists");
-        logger.info("[AuthService][{}] User ID exists for user, at withDraw", req.getUserId());
-        return true;
     }
 
     private boolean deleteUserAtFirebase(WithdrawReq req, WithdrawRes res) {
@@ -321,19 +320,16 @@ public class AuthService {
         }
     }
 
-    private boolean deleteUserAtDatabase(WithdrawReq req, WithdrawRes res) {
+    private boolean deleteUserAtDatabase(Users userInfo, WithdrawReq req, WithdrawRes res) {
         try {
-            if (statRepo.updateStatUserStatus(UserStatus.DELETED.getValue(), req.getUserId()) > 0) {
-                res.addMessage("[Success] Successfully change user status to deleted");
-                logger.info("[AuthService][{}] Successfully change user status to deleted", req.getUserId());
-                return true;
-            } else {
-                res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-                res.addMessage("[Failed] User not found, while change user status to deleted");
-                logger.warn("[AuthService][{}] User not found, while change user status to deleted", req.getUserId());
-                return false;
-            }
-        } catch (DataAccessException err) {
+            LocalDateTime now = LocalDateTime.now();
+
+            withdrawTrans.updateUsers(userInfo, now);
+            res.addMessage("[Success] Successfully change user status to deleted");
+            logger.info("[AuthService][{}] Successfully change user status to deleted", req.getUserId());
+            return true;
+
+        } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Database connection error, while change user status to deleted");
             logger.error("[AuthService][{}] Database connection error, while change user status to deleted: {}", req.getUserId(), err.getMessage());
