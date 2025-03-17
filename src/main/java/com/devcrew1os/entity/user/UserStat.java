@@ -1,4 +1,4 @@
-package com.devcrew1os.entity;
+package com.devcrew1os.entity.user;
 
 import lombok.*;
 import javax.persistence.Column;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Stat {
+public class UserStat {
 
     /*===========================
        Parameter

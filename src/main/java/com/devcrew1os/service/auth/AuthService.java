@@ -4,8 +4,8 @@ import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.auth.*;
-import com.devcrew1os.entity.Stat;
-import com.devcrew1os.entity.Users;
+import com.devcrew1os.entity.user.UserStat;
+import com.devcrew1os.entity.user.UserInfo;
 import com.devcrew1os.repository.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
@@ -13,7 +13,6 @@ import com.google.firebase.auth.FirebaseToken;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -47,11 +46,11 @@ public class AuthService {
         if(!isUserIdExist(req, res)) return res;
 
         // 3. 데이터 생성
-        Users newUser = createUser(req, now);
-        Stat newStat = createStat(req, now);
+        UserInfo newUser = createUser(req, now);
+        UserStat newUserStat = createStat(req, now);
 
         // 4. DB 적용
-        signupTrans.saveUserData(newUser,newStat, res);
+        signupTrans.saveUserData(newUser, newUserStat, res);
 
         res.setSuccess(true);
         res.addMessage("[Info] Signup successful");
@@ -97,8 +96,8 @@ public class AuthService {
         return true;
     }
 
-    private Users createUser(SignupReq req, LocalDateTime now) {
-        return Users.builder()
+    private UserInfo createUser(SignupReq req, LocalDateTime now) {
+        return UserInfo.builder()
                 .userId(req.getUserId())
                 .userEmail(req.getEmail())
                 .userName(req.getName())
@@ -110,8 +109,8 @@ public class AuthService {
                 .build();
     }
 
-    private Stat createStat(SignupReq req, LocalDateTime now) {
-        return Stat.builder()
+    private UserStat createStat(SignupReq req, LocalDateTime now) {
+        return UserStat.builder()
                 .userId(req.getUserId())
                 .serviceTerm(1)
                 .lastLoginAt(now)
@@ -138,7 +137,7 @@ public class AuthService {
         if(!isUserIdExist(req, res)) return res;
 
         // 4. 사용자 통계 정보 가져오기
-        Stat userStat = getStatIfExists(req, res);
+        UserStat userStat = getStatIfExists(req, res);
         if (userStat == null) return res;
 
         // 5. 정보 업데이트
@@ -203,9 +202,9 @@ public class AuthService {
         return false;
     }
 
-    private Stat getStatIfExists(LoginReq req, LoginRes res) {
+    private UserStat getStatIfExists(LoginReq req, LoginRes res) {
         try {
-            Stat userStat = loginTrans.getStatByUserId(req.getUserId());
+            UserStat userStat = loginTrans.getStatByUserId(req.getUserId());
             res.addMessage("[Success] User(Stat) exists");
             logger.info("[AuthService][{}] User(Stat) exists, at Login", req.getUserId());
             return userStat;
@@ -217,7 +216,7 @@ public class AuthService {
         }
     }
 
-    private boolean updateStatData(Stat userStat, LoginReq req, LoginRes res) {
+    private boolean updateStatData(UserStat userStat, LoginReq req, LoginRes res) {
         try {
             LocalDateTime now = LocalDateTime.now();
 
@@ -257,7 +256,7 @@ public class AuthService {
         if(!isRequestValid(req, res)) return res;
 
         // 2. ID 값 검증
-        Users userInfo = getUsersIfExist(req, res);
+        UserInfo userInfo = getUsersIfExist(req, res);
         if (userInfo == null) return res;
 
         // 3. FirebaseAuth 제거
@@ -292,9 +291,9 @@ public class AuthService {
         return true;
     }
 
-    private Users getUsersIfExist(WithdrawReq req, WithdrawRes res) {
+    private UserInfo getUsersIfExist(WithdrawReq req, WithdrawRes res) {
         try {
-            Users userInfo = withdrawTrans.getUsersByUserId(req.getUserId());
+            UserInfo userInfo = withdrawTrans.getUsersByUserId(req.getUserId());
             res.addMessage("[Success] User(Stat) exists");
             logger.info("[AuthService][{}] User(Info) exists, at Withdraw", req.getUserId());
             return userInfo;
@@ -320,7 +319,7 @@ public class AuthService {
         }
     }
 
-    private boolean deleteUserAtDatabase(Users userInfo, WithdrawReq req, WithdrawRes res) {
+    private boolean deleteUserAtDatabase(UserInfo userInfo, WithdrawReq req, WithdrawRes res) {
         try {
             LocalDateTime now = LocalDateTime.now();
 

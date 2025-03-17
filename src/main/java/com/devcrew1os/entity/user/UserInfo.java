@@ -1,4 +1,4 @@
-package com.devcrew1os.entity;
+package com.devcrew1os.entity.user;
 
 import lombok.*;
 
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class Users {
+public class UserInfo {
 
     /*===========================
        Parameter

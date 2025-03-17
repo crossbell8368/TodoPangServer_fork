@@ -2,8 +2,8 @@ package com.devcrew1os.service.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.auth.SignupRes;
-import com.devcrew1os.entity.Stat;
-import com.devcrew1os.entity.Users;
+import com.devcrew1os.entity.user.UserStat;
+import com.devcrew1os.entity.user.UserInfo;
 import com.devcrew1os.repository.StatRepository;
 import com.devcrew1os.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,10 +24,10 @@ public class SignupTransaction {
     private static final Logger logger = LoggerFactory.getLogger(SignupTransaction.class);
 
     @Transactional
-    public void saveUserData(Users newUser, Stat newStat, SignupRes res) {
+    public void saveUserData(UserInfo newUser, UserStat newUserStat, SignupRes res) {
         try {
             executeTransaction(() -> userRepo.save(newUser), res, "User", newUser.getUserId());
-            executeTransaction(() -> statRepo.save(newStat), res, "Stat", newStat.getUserId());
+            executeTransaction(() -> statRepo.save(newUserStat), res, "Stat", newUserStat.getUserId());
 
         } catch (Exception err) {
             logger.error("[AuthTransaction][{}] Transaction failed, rolling back: {}", newUser.getUserId(), err.getMessage());
