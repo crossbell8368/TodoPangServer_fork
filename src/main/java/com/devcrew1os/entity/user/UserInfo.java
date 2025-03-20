@@ -41,4 +41,7 @@ public class UserInfo {
 
     @Column(name = "user_deleted_at")
     private LocalDateTime deletedAt;
+
+    @OneToOne(mappedBy = "userInfo")
+    private UserStat stat;
 }

@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface ChallengeStatRepository extends JpaRepository<ChallengeStat, Integer> {
-    List<ChallengeStat> findAllByOrderByIdDesc();
+    List<ChallengeStat> findTop10ByOrderByPopularityDesc();
 }

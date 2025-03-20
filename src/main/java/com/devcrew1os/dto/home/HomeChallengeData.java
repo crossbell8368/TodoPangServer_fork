@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class HomeChallengeCard {
+public class HomeChallengeData {
     private String title;
     private int category;
     private int diff;

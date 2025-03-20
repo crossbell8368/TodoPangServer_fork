@@ -1,10 +1,8 @@
 package com.devcrew1os.entity.user;
 
 import lombok.*;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,6 +20,11 @@ public class UserStat {
     @Id
     @Column(name = "user_id", nullable = false, unique = true, length = 50)
     private String userId;
+
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "user_id")
+    private UserInfo userInfo;
 
     @Column(name = "stat_term", nullable = false)
     private int serviceTerm;

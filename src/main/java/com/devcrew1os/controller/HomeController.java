@@ -19,11 +19,11 @@ public class HomeController {
     private final Response<?> response;
     private final HomeService homeService;
 
-    @PostMapping("/get")
+    @PostMapping("/data")
     public ResponseEntity<?> getHome(
             @RequestBody HomeReq req
     ) {
-        HomeRes res = homeService.getDummyHomeData(req);
+        HomeRes res = homeService.getHomes(req);
         return response.handleResult(res);
     }
 }

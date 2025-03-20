@@ -12,6 +12,6 @@ public class HomeRes extends AbstractResponse  {
     private HomeData data;
 
     public HomeRes(boolean isSuccess, boolean isDataExist, String message, ErrorCode errorCode) {
-        super(isSuccess, false, message, errorCode);
+        super(isSuccess, isDataExist, message, errorCode);
     }
 }

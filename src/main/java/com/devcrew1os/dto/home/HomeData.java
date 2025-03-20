@@ -11,9 +11,7 @@ import java.util.Map;
 @Getter
 @AllArgsConstructor
 public class HomeData {
-    private String userName;
-    private int finishedProjects;
-    private int registeredProjects;
+    private HomeUserData userData;
     private Map<Integer, String> categories;
-    private List<HomeChallengeCard> popularChallenges;
+    private List<HomeChallengeData> popularChallenges;
 }
