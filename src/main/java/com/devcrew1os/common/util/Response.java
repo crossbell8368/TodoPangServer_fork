@@ -4,6 +4,7 @@ import com.devcrew1os.dto.AbstractResponse;
 import com.devcrew1os.dto.auth.LoginRes;
 import com.devcrew1os.dto.auth.SignupRes;
 import com.devcrew1os.dto.auth.WithdrawRes;
+import com.devcrew1os.dto.challenge.GetChallengesRes;
 import com.devcrew1os.dto.home.HomeData;
 import com.devcrew1os.dto.home.HomeRes;
 import lombok.AllArgsConstructor;
@@ -57,25 +58,36 @@ public class Response<T> {
        Result 객체 처리
     ===========================*/
 
+    // signup
     public ResponseEntity<?> handleResult(SignupRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 
+    // login
     public ResponseEntity<?> handleResult(LoginRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 
+    // withdraw
     public ResponseEntity<?> handleResult(WithdrawRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
     }
 
+    // home
     public ResponseEntity<?> handleResult(HomeRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    // challenge
+    public ResponseEntity<?> handleResult(GetChallengesRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());

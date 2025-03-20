@@ -19,6 +19,11 @@ public class ChallengeStat {
     @Column(name = "challenge_info_id")
     private int id;
 
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "challenge_info_id")
+    private ChallengeInfo challengeInfo;
+
     @Column(name = "challenge_popularity", nullable = false)
     private int popularity;
 

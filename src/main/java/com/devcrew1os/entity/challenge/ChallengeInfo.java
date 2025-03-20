@@ -24,6 +24,9 @@ public class ChallengeInfo {
     @JoinColumn(name = "challenge_category_info_id", referencedColumnName = "challenge_category_info_id")
     private ChallengeCategory category;
 
+    @OneToOne(mappedBy = "challengeInfo")
+    private ChallengeStat stat;
+
     @Column(name = "challenge_title", nullable = false)
     private String title;
 
