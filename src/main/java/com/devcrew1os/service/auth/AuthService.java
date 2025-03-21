@@ -25,7 +25,6 @@ import java.util.Objects;
 public class AuthService {
 
     private final UserRepository userRepo;
-
     private final SignupTransaction signupTrans;
     private final LoginTransaction loginTrans;
     private final WithdrawTransaction withdrawTrans;

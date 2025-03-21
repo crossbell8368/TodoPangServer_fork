@@ -22,7 +22,6 @@ public class UserStat {
     private String userId;
 
     @OneToOne
-    @MapsId
     @JoinColumn(name = "user_id")
     private UserInfo userInfo;
 
