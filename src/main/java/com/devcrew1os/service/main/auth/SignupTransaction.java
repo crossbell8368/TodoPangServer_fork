@@ -2,10 +2,10 @@ package com.devcrew1os.service.main.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.main.auth.SignupRes;
-import com.devcrew1os.entity.user.UserStat;
-import com.devcrew1os.entity.user.UserInfo;
-import com.devcrew1os.repository.StatRepository;
-import com.devcrew1os.repository.UserRepository;
+import com.devcrew1os.entity.main.user.UserStat;
+import com.devcrew1os.entity.main.user.UserInfo;
+import com.devcrew1os.repository.main.users.UserStatRepository;
+import com.devcrew1os.repository.main.users.UserInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +19,8 @@ import javax.transaction.Transactional;
 @RequiredArgsConstructor
 public class SignupTransaction {
 
-    private final UserRepository userRepo;
-    private final StatRepository statRepo;
+    private final UserInfoRepository userRepo;
+    private final UserStatRepository statRepo;
     private static final Logger logger = LoggerFactory.getLogger(SignupTransaction.class);
 
     @Transactional

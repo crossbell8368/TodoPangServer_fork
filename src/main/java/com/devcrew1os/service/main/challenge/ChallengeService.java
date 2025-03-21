@@ -5,11 +5,11 @@ import com.devcrew1os.dto.main.challenge.GetChallengesData;
 import com.devcrew1os.dto.main.challenge.GetChallengesInfo;
 import com.devcrew1os.dto.main.challenge.GetChallengesReq;
 import com.devcrew1os.dto.main.challenge.GetChallengesRes;
-import com.devcrew1os.entity.challenge.ChallengeCategory;
-import com.devcrew1os.entity.challenge.ChallengeInfo;
-import com.devcrew1os.repository.UserRepository;
-import com.devcrew1os.repository.challenge.ChallengeCategoryRepository;
-import com.devcrew1os.repository.challenge.ChallengeInfoRepository;
+import com.devcrew1os.entity.main.challenge.ChallengeCategory;
+import com.devcrew1os.entity.main.challenge.ChallengeInfo;
+import com.devcrew1os.repository.main.users.UserInfoRepository;
+import com.devcrew1os.repository.main.challenge.ChallengeCategoryRepository;
+import com.devcrew1os.repository.main.challenge.ChallengeInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +26,7 @@ public class ChallengeService {
 
     private final ChallengeCategoryRepository categoryRepo;
     private final ChallengeInfoRepository infoRepo;
-    private final UserRepository userRepo;
+    private final UserInfoRepository userRepo;
 
     private static final Logger logger = LoggerFactory.getLogger(ChallengeService.class);
 
@@ -70,7 +70,7 @@ public class ChallengeService {
 
     // UserId 검증
     private boolean isUserIdExist(GetChallengesReq req, GetChallengesRes res) {
-        if (userRepo.existsByUserId(req.getUserId())) {
+        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
             res.addMessage("[Success] User(Info) exists");
             logger.info("[ChallengeService][{}] User exists, at get challenges", req.getUserId());
             return true;
@@ -115,7 +115,7 @@ public class ChallengeService {
             return categoryMap;
 
         } catch (Exception err) {
-            logger.error("[ChallengeService][{}] Failed to search challenge category data", req.getUserId());
+            logger.error("[ChallengeService][{}] Failed to retrieved challenge category data", req.getUserId());
             return null;
         }
     }

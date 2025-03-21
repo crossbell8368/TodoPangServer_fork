@@ -2,12 +2,12 @@ package com.devcrew1os.service.main.home;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.main.home.*;
-import com.devcrew1os.entity.challenge.ChallengeCategory;
-import com.devcrew1os.entity.challenge.ChallengeStat;
-import com.devcrew1os.entity.user.UserInfo;
-import com.devcrew1os.repository.UserRepository;
-import com.devcrew1os.repository.challenge.ChallengeCategoryRepository;
-import com.devcrew1os.repository.challenge.ChallengeStatRepository;
+import com.devcrew1os.entity.main.challenge.ChallengeCategory;
+import com.devcrew1os.entity.main.challenge.ChallengeStat;
+import com.devcrew1os.entity.main.user.UserInfo;
+import com.devcrew1os.repository.main.users.UserInfoRepository;
+import com.devcrew1os.repository.main.challenge.ChallengeCategoryRepository;
+import com.devcrew1os.repository.main.challenge.ChallengeStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +21,7 @@ public class HomeService {
 
     private final ChallengeCategoryRepository categoryRepo;
     private final ChallengeStatRepository statRepo;
-    private final UserRepository userRepo;
+    private final UserInfoRepository userRepo;
     private final HomeTransaction homeTrans;
 
     private static final Logger logger = LoggerFactory.getLogger(HomeService.class);
@@ -68,7 +68,7 @@ public class HomeService {
     }
 
     private boolean isUserIdExist(HomeReq req, HomeRes res) {
-        if (userRepo.existsByUserId(req.getUserId())) {
+        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
             res.addMessage("[Success] User(Info) exists");
             logger.info("[HomeService][{}] User exists, at getHomes", req.getUserId());
             return true;

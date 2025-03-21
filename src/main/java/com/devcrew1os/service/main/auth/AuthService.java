@@ -4,9 +4,9 @@ import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.main.auth.*;
-import com.devcrew1os.entity.user.UserStat;
-import com.devcrew1os.entity.user.UserInfo;
-import com.devcrew1os.repository.UserRepository;
+import com.devcrew1os.entity.main.user.UserStat;
+import com.devcrew1os.entity.main.user.UserInfo;
+import com.devcrew1os.repository.main.users.UserInfoRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -24,7 +24,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserRepository userRepo;
+    private final UserInfoRepository userRepo;
     private final SignupTransaction signupTrans;
     private final LoginTransaction loginTrans;
     private final WithdrawTransaction withdrawTrans;
@@ -84,7 +84,7 @@ public class AuthService {
     }
 
     private boolean isUserIdExist(SignupReq req, SignupRes res) {
-        if (userRepo.existsByUserId(req.getUserId())) {
+        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
             res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request UserID already exists");
             logger.warn("[AuthService][{}] Request UserID already exists, at Signup", req.getUserId());
@@ -190,7 +190,7 @@ public class AuthService {
     }
 
     private boolean isUserIdExist(LoginReq req, LoginRes res) {
-        if (userRepo.existsByUserId(req.getUserId())) {
+        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
             res.addMessage("[Success] User(Info) exists");
             logger.info("[AuthService][{}] User(Info) exists, at Login", req.getUserId());
             return true;

@@ -1,5 +1,6 @@
 package com.devcrew1os.dto;
 
+import com.devcrew1os.dto.admin.category.GetAdminCategoryRes;
 import com.devcrew1os.dto.main.auth.LoginRes;
 import com.devcrew1os.dto.main.auth.SignupRes;
 import com.devcrew1os.dto.main.auth.WithdrawRes;
@@ -53,7 +54,7 @@ public class Response<T> {
     }
 
     /*===========================
-       Result 객체 처리
+       Result 객체 처리: Main
     ===========================*/
 
     // signup
@@ -86,6 +87,17 @@ public class Response<T> {
 
     // challenge
     public ResponseEntity<?> handleResult(GetChallengesRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    /*===========================
+       Result 객체 처리: Admin
+    ===========================*/
+
+    // category
+    public ResponseEntity<?> handleResult(GetAdminCategoryRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());

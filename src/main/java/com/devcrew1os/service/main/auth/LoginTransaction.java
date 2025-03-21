@@ -1,7 +1,7 @@
 package com.devcrew1os.service.main.auth;
 
-import com.devcrew1os.entity.user.UserStat;
-import com.devcrew1os.repository.StatRepository;
+import com.devcrew1os.entity.main.user.UserStat;
+import com.devcrew1os.repository.main.users.UserStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class LoginTransaction {
 
-    private final StatRepository statRepo;
+    private final UserStatRepository statRepo;
 
     public UserStat getStatByUserId(String userId) {
         return statRepo.findByUserId(userId).orElseThrow(
