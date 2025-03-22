@@ -3,6 +3,8 @@ package com.devcrew1os.controller.admin;
 import com.devcrew1os.dto.Response;
 import com.devcrew1os.dto.admin.category.GetAdminCategoryReq;
 import com.devcrew1os.dto.admin.category.GetAdminCategoryRes;
+import com.devcrew1os.dto.admin.category.SetAdminCategoryReq;
+import com.devcrew1os.dto.admin.category.SetAdminCategoryRes;
 import com.devcrew1os.service.admin.category.AdminCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +24,19 @@ public class CategoryController {
     /*===========================
        카테고리 목록조회
     ===========================*/
-    @PostMapping("/list")
+    @PostMapping("/fetch")
     public ResponseEntity<?> getCategories(
             @RequestBody GetAdminCategoryReq req
     ){
         GetAdminCategoryRes res = categoryService.getAdminCategories(req);
+        return response.handleResult(res);
+    }
+
+    @PostMapping("/add")
+    public ResponseEntity<?> addCategory(
+            @RequestBody SetAdminCategoryReq req
+    ){
+        SetAdminCategoryRes res = categoryService.setAdminCategories(req);
         return response.handleResult(res);
     }
 }
