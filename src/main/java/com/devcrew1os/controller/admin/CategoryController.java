@@ -1,10 +1,7 @@
 package com.devcrew1os.controller.admin;
 
 import com.devcrew1os.dto.Response;
-import com.devcrew1os.dto.admin.category.GetAdminCategoryReq;
-import com.devcrew1os.dto.admin.category.GetAdminCategoryRes;
-import com.devcrew1os.dto.admin.category.SetAdminCategoryReq;
-import com.devcrew1os.dto.admin.category.SetAdminCategoryRes;
+import com.devcrew1os.dto.admin.category.*;
 import com.devcrew1os.service.admin.category.AdminCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +34,14 @@ public class CategoryController {
             @RequestBody SetAdminCategoryReq req
     ){
         SetAdminCategoryRes res = categoryService.setAdminCategories(req);
+        return response.handleResult(res);
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<?> updateCategory(
+            @RequestBody UpdateAdminCategoryReq req
+    ) {
+        UpdateAdminCategoryRes res = categoryService.updateAdminCategory(req);
         return response.handleResult(res);
     }
 }

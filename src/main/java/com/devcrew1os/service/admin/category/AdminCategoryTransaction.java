@@ -18,4 +18,16 @@ public class AdminCategoryTransaction {
     public void saveCategories(List<AdminCategory> categories) {
         categoryRepo.saveAll(categories);
     }
+
+    public AdminCategory getCategoryById(int id) {
+        return categoryRepo.findById(id).orElseThrow(
+                () -> new RuntimeException("Category <" + id + "> not found")
+        );
+    }
+
+    @Transactional
+    public void updateCategory(AdminCategory category, String newTitle) {
+        category.setTitle(newTitle);
+        categoryRepo.save(category);
+    }
 }

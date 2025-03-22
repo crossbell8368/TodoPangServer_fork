@@ -1,15 +1,13 @@
 package com.devcrew1os.entity.admin;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "challenge_category_info", schema = "admin")
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

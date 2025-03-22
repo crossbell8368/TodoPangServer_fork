@@ -2,6 +2,8 @@ package com.devcrew1os.dto;
 
 import com.devcrew1os.dto.admin.category.GetAdminCategoryRes;
 import com.devcrew1os.dto.admin.category.SetAdminCategoryRes;
+import com.devcrew1os.dto.admin.category.UpdateAdminCategoryRes;
+import com.devcrew1os.dto.admin.challenge.GetChallengeRes;
 import com.devcrew1os.dto.main.auth.LoginRes;
 import com.devcrew1os.dto.main.auth.SignupRes;
 import com.devcrew1os.dto.main.auth.WithdrawRes;
@@ -105,6 +107,12 @@ public class Response<T> {
     }
 
     public ResponseEntity<?> handleResult(SetAdminCategoryRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    public ResponseEntity<?> handleResult(UpdateAdminCategoryRes res) {
         return res.isSuccess()
                 ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
                 : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
