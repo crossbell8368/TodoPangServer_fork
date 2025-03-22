@@ -16,5 +16,5 @@ public class GetAdminCategoryRes extends BaseResponse {
     public GetAdminCategoryRes(boolean isSuccess, boolean isDataExist, String message, ErrorCode errorCode) {
         super(isSuccess, isDataExist, message, errorCode);
     }
-    private GetAdminCategoryData data;
+    private GetAdminCategoryData[] data;
 }

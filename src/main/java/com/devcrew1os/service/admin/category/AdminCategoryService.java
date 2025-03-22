@@ -11,9 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -31,14 +29,13 @@ public class AdminCategoryService {
     ===========================*/
     public GetAdminCategoryRes getAdminCategories(GetAdminCategoryReq req) {
         GetAdminCategoryRes res = new GetAdminCategoryRes(false, false, "[Info] Get admin categories initiated", ErrorCode.OK);
-        GetAdminCategoryData data = new GetAdminCategoryData();
 
         if(!isRequestValid(req, res)) return res;
 
         if(!isAdminIdExist(req, res)) return res;
 
-        data.setCategories(getCategoryData(req, res));
-        if (data.getCategories() == null) return res;
+        GetAdminCategoryData[] data = getCategoryData(req, res);
+        if (data == null) return res;
 
         res.setData(data);
         res.setSuccess(true);
@@ -76,15 +73,18 @@ public class AdminCategoryService {
         return false;
     }
 
-    private Map<Integer, String> getCategoryData(GetAdminCategoryReq req, GetAdminCategoryRes res) {
-
-        Map<Integer, String> data = new HashMap<>();
+    private GetAdminCategoryData[] getCategoryData(GetAdminCategoryReq req, GetAdminCategoryRes res) {
         try {
             List<AdminCategory> adminCategories = categoryRepo.findAllByOrderByIdDesc();
-            for (AdminCategory category : adminCategories) {
-                data.put(category.getId(), category.getTitle());
+            GetAdminCategoryData[] data =new GetAdminCategoryData[adminCategories.size()];
+            for (int i = 0; i < adminCategories.size(); i++) {
+                data[i] = new GetAdminCategoryData(
+                        adminCategories.get(i).getId(),
+                        adminCategories.get(i).getStatus(),
+                        adminCategories.get(i).getTitle()
+                );
             }
-            logger.info("[AdminCategoryService][{}] Successfully retrieved {} categories", req.getAdminId(), data.size());
+            logger.info("[AdminCategoryService][{}] Successfully retrieved {} categories", req.getAdminId(), data.length);
             return data;
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
@@ -167,6 +167,7 @@ public class AdminCategoryService {
 
     private AdminCategory createCategory(String title){
         return AdminCategory.builder()
+                .status(1)
                 .title(title)
                 .build();
     }
@@ -200,6 +201,9 @@ public class AdminCategoryService {
         }
         if (req.getUpdatedCategoryId() == null) {
             errors.add("[Failed] Updated categoryId must not be null");
+        }
+        if (req.getUpdatedCategoryStatus() == null) {
+            errors.add("[Failed] Updated category status must not be null");
         }
         if (req.getUpdatedCategoryTitle() == null || req.getUpdatedCategoryTitle().isEmpty()) {
             errors.add("[Failed] Updated category title must not be null or empty");
@@ -244,7 +248,7 @@ public class AdminCategoryService {
 
     private boolean updateCategory(AdminCategory category, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
         try {
-            categoryTrans.updateCategory(category, req.getUpdatedCategoryTitle());
+            categoryTrans.updateCategory(category, req.getUpdatedCategoryStatus(), req.getUpdatedCategoryTitle());
             res.addMessage("[Success] Category data updated");
             logger.info("[AdminCategoryService][{}] Category({}) data updated", req.getAdminId(), req.getUpdatedCategoryId());
             return true;
@@ -255,8 +259,4 @@ public class AdminCategoryService {
             return false;
         }
     }
-
-    /*===========================
-       카테고리 제거
-    ===========================*/
 }

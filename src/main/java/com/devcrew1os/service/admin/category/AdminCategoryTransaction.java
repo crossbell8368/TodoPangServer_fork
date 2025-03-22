@@ -26,8 +26,9 @@ public class AdminCategoryTransaction {
     }
 
     @Transactional
-    public void updateCategory(AdminCategory category, String newTitle) {
+    public void updateCategory(AdminCategory category, int newStatus, String newTitle) {
         category.setTitle(newTitle);
+        category.setStatus(newStatus);
         categoryRepo.save(category);
     }
 }

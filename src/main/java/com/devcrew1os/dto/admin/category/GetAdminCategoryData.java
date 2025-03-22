@@ -1,5 +1,6 @@
 package com.devcrew1os.dto.admin.category;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -9,6 +10,9 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 public class GetAdminCategoryData {
-    private Map<Integer, String> categories;
+    private int categoryId;
+    private int categoryStatus;
+    private String categoryTitle;
 }

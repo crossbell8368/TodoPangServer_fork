@@ -18,6 +18,9 @@ public class AdminCategory {
     @Column(name = "challenge_category_info_id")
     private int id;
 
+    @Column(name = "challenge_category_status", nullable = false)
+    private int status;
+
     @Column(name = "challenge_category_title", nullable = false, length = 255)
     private String title;
 }
