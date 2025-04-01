@@ -1,5 +1,6 @@
 package com.devcrew1os.service.admin.category;
 
+import com.devcrew1os.common.enums.CategoryStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.category.*;
 import com.devcrew1os.entity.admin.AdminCategory;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -120,6 +123,12 @@ public class AdminCategoryService {
         }
         if (req.getNewCategories() == null || req.getNewCategories().isEmpty()) {
             errors.add("[Failed] New categories must not be null or empty");
+        } else {
+            for(String title : req.getNewCategories()) {
+                if(title == null || title.isEmpty()) {
+                    errors.add("[Failed] New category title must not be null or empty");
+                }
+            }
         }
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
@@ -182,8 +191,8 @@ public class AdminCategoryService {
 
         if(!isAdminIdExist(req, res)) return res;
 
-        AdminCategory data = fetchCategory(req, res);
-        if(data == null) return res;
+        List<AdminCategory> data = fetchCategory(req, res);
+        if(data == null || data.isEmpty()) return res;
 
         if(!updateCategory(data, req, res)) return res;
 
@@ -199,16 +208,17 @@ public class AdminCategoryService {
         if (req.getAdminId() == null || req.getAdminId().isEmpty()) {
             errors.add("[Failed] AdminID must not be null or empty");
         }
-        if (req.getUpdatedCategoryId() == null) {
-            errors.add("[Failed] Updated categoryId must not be null");
+        for(UpdateAdminCategoryData data : req.getUpdatedCategories()){
+            if (data.getUpdatedCategoryId() == null) {
+                errors.add("[Failed] Updated categoryId must not be null");
+            }
+            if (data.getUpdatedCategoryStatus() == null || !CategoryStatus.isValidValue(data.getUpdatedCategoryStatus())) {
+                errors.add("[Failed] Updated category(" + data.getUpdatedCategoryId() + ") status must not be null or valid");
+            }
+            if (data.getUpdatedCategoryTitle() == null || data.getUpdatedCategoryTitle().isEmpty()) {
+                errors.add("[Failed] Updated category(" + data.getUpdatedCategoryId() + ")title must not be null or empty");
+            }
         }
-        if (req.getUpdatedCategoryStatus() == null) {
-            errors.add("[Failed] Updated category status must not be null");
-        }
-        if (req.getUpdatedCategoryTitle() == null || req.getUpdatedCategoryTitle().isEmpty()) {
-            errors.add("[Failed] Updated category title must not be null or empty");
-        }
-
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
@@ -232,30 +242,36 @@ public class AdminCategoryService {
         return false;
     }
 
-    private AdminCategory fetchCategory(UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
+    private List<AdminCategory> fetchCategory(UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
+        List<Integer> categoryIdList = req.getUpdatedCategories().stream()
+                .map(UpdateAdminCategoryData::getUpdatedCategoryId)
+                .collect(Collectors.toList());
         try {
-            AdminCategory category = categoryTrans.getCategoryById(req.getUpdatedCategoryId());
-            res.addMessage("[Success] Fetched category data");
-            logger.info("[AdminCategoryService][{}] Fetched category data", req.getAdminId());
+            List<AdminCategory> category = categoryTrans.getCategoryByIdList(categoryIdList);
+            res.addMessage("[Success] Fetched " + category.size() + " categories data");
+            logger.info("[AdminCategoryService][{}] Fetched {} categories data", req.getAdminId(), category.size());
             return category;
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
-            res.addMessage("[Failed] Request category data not found");
-            logger.error("[AdminCategoryService][{}] Failed to fetch category data", req.getAdminId());
+            res.addMessage("[Failed] " + err.getMessage());
+            logger.error("[AdminCategoryService][{}] {}", req.getAdminId(), err.getMessage());
             return null;
         }
     }
 
-    private boolean updateCategory(AdminCategory category, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
+    private boolean updateCategory(List<AdminCategory> category, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
+
+        Map<Integer, UpdateAdminCategoryData> updatedData = req.getUpdatedCategories().stream()
+                .collect(Collectors.toMap(UpdateAdminCategoryData::getUpdatedCategoryId, data -> data));
         try {
-            categoryTrans.updateCategory(category, req.getUpdatedCategoryStatus(), req.getUpdatedCategoryTitle());
-            res.addMessage("[Success] Category data updated");
-            logger.info("[AdminCategoryService][{}] Category({}) data updated", req.getAdminId(), req.getUpdatedCategoryId());
+            categoryTrans.updateCategory(category, updatedData);
+            res.addMessage("[Success] " + category.size() + " Category data updated");
+            logger.info("[AdminCategoryService][{}] {} Categories data updated", req.getAdminId(), category.size());
             return true;
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Category data not updated");
-            logger.error("[AdminCategoryService][{}] Failed to update category({}) data", req.getAdminId(), req.getUpdatedCategoryId());
+            res.addMessage("[Failed] Category data not updated: " + err.getMessage());
+            logger.error("[AdminCategoryService][{}] Failed to update categories data: {}", req.getAdminId(), err.getMessage());
             return false;
         }
     }

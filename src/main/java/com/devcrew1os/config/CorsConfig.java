@@ -26,6 +26,8 @@ public class CorsConfig {
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         config.setAllowCredentials(true);
 
+        source.registerCorsConfiguration("/**", config);
+
         return new CorsFilter(source);
     }
 }
