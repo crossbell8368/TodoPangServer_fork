@@ -4,16 +4,16 @@ import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.Location;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
-import com.devcrew1os.common.util.TokenVerifier;
 import com.devcrew1os.dto.main.auth.*;
-import com.devcrew1os.dto.main.util.TokenVerifyReq;
-import com.devcrew1os.dto.main.util.TokenVerifyRes;
+import com.devcrew1os.dto.util.TokenReq;
+import com.devcrew1os.dto.util.TokenRes;
+import com.devcrew1os.dto.util.ValidationResult;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
+import com.devcrew1os.service.util.TokenService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseToken;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +32,9 @@ public class AuthService {
     private final SignupTransaction signupTrans;
     private final LoginTransaction loginTrans;
     private final WithdrawTransaction withdrawTrans;
-    private final TokenVerifier tokenVerifier;
+    private final WithdrawAsync withdrawAsync;
+
+    private final TokenService tokenService;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -175,12 +177,12 @@ public class AuthService {
     }
 
     private boolean isIdTokenValid(LoginReq req, LoginRes res) {
-        TokenVerifyReq request = new TokenVerifyReq(
+        TokenReq request = new TokenReq(
                 req.getIdToken(),
                 req.getUserId(),
                 Location.MAIN_AUTH.getVal()
         );
-        TokenVerifyRes response = tokenVerifier.isValid(request);
+        TokenRes response = tokenService.tokenVerifier(request);
 
         res.addMessage(response.getMessage());
         if(response.isStatus()){
@@ -251,20 +253,18 @@ public class AuthService {
        사용자 회원탈퇴
     ===========================*/
     public WithdrawRes withdraw(String token, WithdrawReq req) {
+        UserInfo userInfo = new UserInfo();
         WithdrawRes res = new WithdrawRes(false, "[Info] Withdraw initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
         if(!isRequestValid(req, res)) return res;
 
-        // 2. ID 값 검증
-        UserInfo userInfo = getUsersIfExist(req, res);
-        if (userInfo == null) return res;
+        // 2. TokenId & User 값 검증
+        ValidationResult result = isUserValid(token, req, res);
+        if(!result.isValid() || result.getUserInfo() == null) return res;
 
-        // 3. FirebaseAuth 제거
-        if(!deleteUserAtFirebase(req, res)) return res;
-
-        // 4. 데이터베이스 상태값 변경
-        if(!deleteUserAtDatabase(userInfo, req, res)) return res;
+        // 3. Firebase & Database 업데이트
+        if(!isUserDeleted(result.getUserInfo(), req, res))return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Withdraw successful");
@@ -292,53 +292,86 @@ public class AuthService {
         return true;
     }
 
-    private UserInfo getUsersIfExist(WithdrawReq req, WithdrawRes res) {
+    private ValidationResult isUserValid(String token, WithdrawReq req, WithdrawRes res) {
+        ValidationResult result = new ValidationResult(false, null);
+        StringBuilder tokenMsg = new StringBuilder();
+        StringBuilder userMsg = new StringBuilder();
+
         try {
-            UserInfo userInfo = withdrawTrans.getUsersByUserId(req.getUserId());
-            res.addMessage("[Success] User(Stat) exists");
-            logger.info("[AuthService][{}] User(Info) exists, at Withdraw", req.getUserId());
-            return userInfo;
-        } catch (RuntimeException err) {
-            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-            res.addMessage("[Failed] User(Stat) not found");
-            logger.warn("[AuthService][{}] User(Info) not found, at Withdraw", req.getUserId());
-            return null;
+            CompletableFuture<Boolean> tokenFuture = withdrawAsync.isTokenValid(token, req.getUserId(), tokenMsg);
+            CompletableFuture<UserInfo> userFuture = withdrawAsync.isUserExist(req.getUserId(), userMsg);
+            CompletableFuture.allOf(tokenFuture, userFuture).join();
+
+            Boolean tokenResult = tokenFuture.get();
+            UserInfo userResult = userFuture.get();
+
+            if (!tokenResult && userResult == null) {
+                res.setErrorCode(ErrorCode.UNAUTHORIZED);
+                res.addMessage("[Failed] Token invalid & User not found");
+                logger.error("[AuthService][{}] Withdraw user token is invalid and user not found at server: {} \n {}", req.getUserId(), tokenMsg.toString(), userMsg.toString());
+            } else if(!tokenResult) {
+                res.setErrorCode(ErrorCode.UNAUTHORIZED);
+                res.addMessage("[Failed] Token invalid");
+                logger.error("[AuthService][{}] Withdraw user token is invalid: {}", req.getUserId(), tokenMsg.toString());
+            } else if(userResult == null) {
+                res.setErrorCode(ErrorCode.USER_NOT_FOUND);
+                res.addMessage("[Failed] User not found");
+                logger.error("[AuthService][{}] Withdraw user not exist at server: {}", req.getUserId(), userMsg.toString());
+            } else {
+                result.setValid(true);
+                result.setUserInfo(userResult);
+                res.addMessage("[Info] Validation complete");
+                logger.info("[AuthService][{}] Withdraw user validation complete \n {} \n {}", req.getUserId(), tokenMsg.toString(), userMsg.toString());
+            }
+            return result;
+        } catch (Exception err) {
+            res.addMessage("[Failed] Validation process exception");
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            logger.error("[AuthService][{}] Withdraw validation process exception: {} \n {} \n {}", req.getUserId(), err.getMessage(), tokenMsg.toString(), userMsg.toString());
+            return result;
         }
     }
 
-    private boolean deleteUserAtFirebase(WithdrawReq req, WithdrawRes res) {
-        try {
-            FirebaseAuth.getInstance().deleteUser(req.getUserId());
-            res.addMessage("[Success] Successfully delete user at firebase");
-            logger.info("[AuthService][{}] Successfully delete user at firebase", req.getUserId());
-            return true;
-        } catch (FirebaseAuthException err) {
-            res.setErrorCode(ErrorCode.FIREBASE_ERROR);
-            res.addMessage("[Failed] Failed to delete user at Firebase");
-            logger.error("[AuthService][{}] Failed to delete user at Firebase: {}", req.getUserId(), err.getMessage());
-            return false;
-        }
-    }
+    private boolean isUserDeleted(UserInfo entity, WithdrawReq req, WithdrawRes res) {
+        boolean status = false;
+        StringBuilder firebaseMsg = new StringBuilder();
+        StringBuilder databaseMsg = new StringBuilder();
 
-    private boolean deleteUserAtDatabase(UserInfo userInfo, WithdrawReq req, WithdrawRes res) {
         try {
-            LocalDateTime now = LocalDateTime.now();
+            CompletableFuture<Boolean> firebaseFuture = withdrawAsync.isUserDeletedFromFirebase(req.getUserId(), firebaseMsg);
+            CompletableFuture<Boolean> databaseFuture = withdrawAsync.isUserDeletedFromDatabase(entity, databaseMsg);
+            CompletableFuture.allOf(firebaseFuture, databaseFuture).join();
 
-            withdrawTrans.updateUsers(userInfo, now);
-            res.addMessage("[Success] Successfully change user status to deleted");
-            logger.info("[AuthService][{}] Successfully change user status to deleted", req.getUserId());
-            return true;
+            Boolean firebaseResult = firebaseFuture.get();
+            Boolean databaseResult = databaseFuture.get();
+
+            if(!firebaseResult && !databaseResult) {
+                res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+                res.addMessage("[Failed] Firebase & database error detected");
+                logger.error("[AuthService][{}] Failed to delete user from firebase & database: {} \n {}", req.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
+            } else if (!firebaseResult) {
+                res.setErrorCode(ErrorCode.FIREBASE_ERROR);
+                res.addMessage("[Failed] Firebase error detected");
+                logger.error("[AuthService][{}] Failed to delete user from firebase: {}", req.getUserId(), firebaseMsg.toString());
+            } else if (!databaseResult) {
+                res.setErrorCode(ErrorCode.DATABASE_ERROR);
+                res.addMessage("[Failed] Database error detected");
+                logger.error("[AuthService][{}] Failed to delete user from database: {}", req.getUserId(), databaseMsg.toString());
+            } else {
+                status = true;
+                res.addMessage("[Info] User data deleted");
+                logger.info("[AuthService][{}] Withdraw user data deleted: \n {} \n {}", req.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
+            }
+            return status;
 
         } catch (Exception err) {
-            res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Database connection error, while change user status to deleted");
-            logger.error("[AuthService][{}] Database connection error, while change user status to deleted: {}", req.getUserId(), err.getMessage());
+            res.addMessage("[Failed] Delete process exception");
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            logger.error("[AuthService][{}] Withdraw delete process exception: {} \n {} \n {}", req.getUserId(), err.getMessage(), firebaseMsg.toString(), databaseMsg.toString());
             return false;
         }
     }
-
     /*===========================
        유틸리티
     ===========================*/
-
 }

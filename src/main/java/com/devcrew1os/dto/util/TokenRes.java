@@ -1,4 +1,4 @@
-package com.devcrew1os.dto.main.util;
+package com.devcrew1os.dto.util;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import lombok.AllArgsConstructor;
@@ -8,12 +8,12 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class TokenVerifyRes {
+public class TokenRes {
     private boolean status;
     private StringBuilder message;
     private ErrorCode code;
 
-    public TokenVerifyRes(boolean status, String message, ErrorCode code) {
+    public TokenRes(boolean status, String message, ErrorCode code) {
         this.message = new StringBuilder();
         this.status = status;
         this.code = code;

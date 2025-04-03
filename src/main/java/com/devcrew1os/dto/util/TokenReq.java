@@ -1,4 +1,4 @@
-package com.devcrew1os.dto.main.util;
+package com.devcrew1os.dto.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class TokenVerifyReq {
+public class TokenReq {
     private String token;
     private String userId;
     private String service;
