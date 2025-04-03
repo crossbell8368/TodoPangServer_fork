@@ -25,11 +25,14 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-configuration-processor'
 
-    // firebase
+    // Firebase
     implementation 'com.google.firebase:firebase-admin:8.1.0'
 
-    // Database
+    // Database(PostgreSQL)
     implementation 'org.postgresql:postgresql:42.3.8'
+
+    // Redis(7.0)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'

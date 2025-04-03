@@ -1,9 +1,13 @@
 package com.devcrew1os.service.main.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.common.enums.Location;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
+import com.devcrew1os.common.util.TokenVerifier;
 import com.devcrew1os.dto.main.auth.*;
+import com.devcrew1os.dto.main.util.TokenVerifyReq;
+import com.devcrew1os.dto.main.util.TokenVerifyRes;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
@@ -28,6 +32,7 @@ public class AuthService {
     private final SignupTransaction signupTrans;
     private final LoginTransaction loginTrans;
     private final WithdrawTransaction withdrawTrans;
+    private final TokenVerifier tokenVerifier;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -170,21 +175,18 @@ public class AuthService {
     }
 
     private boolean isIdTokenValid(LoginReq req, LoginRes res) {
-        try {
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(req.getIdToken());
-            if (!Objects.equals(decodedToken.getUid(), req.getUserId())) {
-                res.setErrorCode(ErrorCode.INVALID_TOKEN);
-                res.addMessage("[Failed] Provided IdToken UID mismatched");
-                logger.warn("[AuthService][{}] Provided IdToken UID mismatched for user", req.getUserId());
-                return false;
-            }
-            res.addMessage("[Success] Successfully verified IdToken");
-            logger.info("[AuthService][{}] Successfully verified IdToken for user", req.getUserId());
+        TokenVerifyReq request = new TokenVerifyReq(
+                req.getIdToken(),
+                req.getUserId(),
+                Location.MAIN_AUTH.getVal()
+        );
+        TokenVerifyRes response = tokenVerifier.isValid(request);
+
+        res.addMessage(response.getMessage());
+        if(response.isStatus()){
             return true;
-        } catch (FirebaseAuthException err) {
-            res.setErrorCode(ErrorCode.FIREBASE_ERROR);
-            res.addMessage("[Failed] Firebase authentication failed");
-            logger.error("[AuthService][{}] Firebase authentication error for user({}): {}", req.getUserId(), req.getIdToken(), err.getMessage());
+        } else {
+            res.setErrorCode(response.getCode());
             return false;
         }
     }
@@ -248,7 +250,7 @@ public class AuthService {
     /*===========================
        사용자 회원탈퇴
     ===========================*/
-    public WithdrawRes withdraw(WithdrawReq req) {
+    public WithdrawRes withdraw(String token, WithdrawReq req) {
         WithdrawRes res = new WithdrawRes(false, "[Info] Withdraw initiated", ErrorCode.OK);
 
         // 1. 입력값 검증

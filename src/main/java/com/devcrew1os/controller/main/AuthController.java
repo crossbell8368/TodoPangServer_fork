@@ -44,9 +44,10 @@ public class AuthController {
     ===========================*/
     @PostMapping("/withdraw")
     public ResponseEntity<?> withdraw(
+            @RequestHeader("Authorization") String token,
             @RequestBody WithdrawReq req
             ) {
-        WithdrawRes res = authService.withdraw(req);
+        WithdrawRes res = authService.withdraw(token.substring(7), req);
         return response.handleResult(res);
     }
 }
