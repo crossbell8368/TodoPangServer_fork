@@ -1,22 +1,18 @@
 package com.devcrew1os.service.main.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.common.enums.Location;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.main.auth.*;
-import com.devcrew1os.dto.util.TokenReq;
-import com.devcrew1os.dto.util.TokenRes;
-import com.devcrew1os.dto.util.ValidationResult;
+import com.devcrew1os.entity.admin.auth.AdminWithdrawInfo;
+import com.devcrew1os.entity.admin.auth.AdminWithdrawStat;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
-import com.devcrew1os.service.util.TokenService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,9 +28,8 @@ public class AuthService {
     private final SignupTransaction signupTrans;
     private final LoginTransaction loginTrans;
     private final WithdrawTransaction withdrawTrans;
-    private final WithdrawAsync withdrawAsync;
 
-    private final TokenService tokenService;
+    private final WithdrawAsync withdrawAsync;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -43,33 +38,31 @@ public class AuthService {
     ===========================*/
     public SignupRes signup(SignupReq req) {
         LocalDateTime now = LocalDateTime.now();
+        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         SignupRes res = new SignupRes(false, "[Info] Signup initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
-        if(!isRequestValid(req, res)) return res;
+        if(!isRequestValid(userId, req, res)) return res;
 
         // 2. Id값 검증
-        if(!isUserIdExist(req, res)) return res;
+        if(!isUserIdExist(userId, res)) return res;
 
         // 3. 데이터 생성
-        UserInfo newUser = createUser(req, now);
-        UserStat newUserStat = createStat(req, now);
+        UserInfo newUser = createUser(userId, req, now);
+        UserStat newUserStat = createStat(userId, now);
 
         // 4. DB 적용
         signupTrans.saveUserData(newUser, newUserStat, res);
 
         res.setSuccess(true);
-        res.addMessage("[Info] Signup successful");
-        logger.info("[AuthService][{}] Signup successful", req.getUserId());
+        res.addMessage("[Info] Signup finish");
+        logger.info("[AuthService][{}] Signup successful", userId);
         return res;
     }
 
-    private boolean isRequestValid(SignupReq req, SignupRes res) {
+    private boolean isRequestValid(String userId, SignupReq req, SignupRes res) {
         List<String> errors = new ArrayList<>();
 
-        if (req.getUserId() == null || req.getUserId().isEmpty()) {
-            errors.add("[Failed] User ID must not be null or empty");
-        }
         if (req.getEmail() == null || req.getEmail().isEmpty()) {
             errors.add("[Failed] Email must not be null or empty");
         }
@@ -82,29 +75,29 @@ public class AuthService {
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
-            logger.error("[AuthService][{}] Invalid argument detected during signupReq: {}", req.getUserId(), res.getMessage());
+            logger.error("[AuthService][{}] Invalid argument detected during signupReq: {}", userId, res.getMessage());
             return false;
         }
         res.addMessage("[Success] Valid Signup request");
-        logger.info("[AuthService][{}] Valid Signup request", req.getUserId());
+        logger.info("[AuthService][{}] Valid Signup request", userId);
         return true;
     }
 
-    private boolean isUserIdExist(SignupReq req, SignupRes res) {
-        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
+    private boolean isUserIdExist(String userId, SignupRes res) {
+        if (userRepo.existsUserInfoByUserId(userId)) {
             res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request UserID already exists");
-            logger.warn("[AuthService][{}] Request UserID already exists, at Signup", req.getUserId());
+            logger.warn("[AuthService][{}] Request UserID already exists, at Signup", userId);
             return false;
         }
         res.addMessage("[Success] Valid UserId");
-        logger.info("[AuthService][{}] Valid UserId, at Signup", req.getUserId());
+        logger.info("[AuthService][{}] Valid UserId, at Signup", userId);
         return true;
     }
 
-    private UserInfo createUser(SignupReq req, LocalDateTime now) {
+    private UserInfo createUser(String userId, SignupReq req, LocalDateTime now) {
         return UserInfo.builder()
-                .userId(req.getUserId())
+                .userId(userId)
                 .userEmail(req.getEmail())
                 .userName(req.getName())
                 .socialType(req.getSocialType())
@@ -115,9 +108,9 @@ public class AuthService {
                 .build();
     }
 
-    private UserStat createStat(SignupReq req, LocalDateTime now) {
+    private UserStat createStat(String userId, LocalDateTime now) {
         return UserStat.builder()
-                .userId(req.getUserId())
+                .userId(userId)
                 .serviceTerm(1)
                 .lastLoginAt(now)
                 .lastLogoutAt(now)
@@ -130,113 +123,57 @@ public class AuthService {
     /*===========================
        사용자 로그인
     ===========================*/
-    public LoginRes login(LoginReq req) {
+    public LoginRes login() {
         LoginRes res = new LoginRes(false, "[Info] Login initiated", ErrorCode.OK);
 
-        // 1. 입력값 검증
-        if(!isRequestValid(req, res)) return res;
-
-        // 2. Token 값 검증
-        if(!isIdTokenValid(req, res)) return res;
-
-        // 3. Id 값 검증
-        if(!isUserIdExist(req, res)) return res;
+        // 1. userId 추출
+        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // 4. 사용자 통계 정보 가져오기
-        UserStat userStat = getStatIfExists(req, res);
+        UserStat userStat = getStatIfExists(userId, res);
         if (userStat == null) return res;
 
         // 5. 정보 업데이트
-        if (!updateStatData(userStat, req, res)) return res;
+        if (!updateStatData(userId, userStat, res)) return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Login successful");
-        logger.info("[AuthService][{}] Login successful", req.getUserId());
+        logger.info("[AuthService][{}] Login successful", userId);
         return res;
     }
 
-    private boolean isRequestValid(LoginReq req, LoginRes res) {
-        List<String> errors = new ArrayList<>();
-
-        if (req.getUserId() == null || req.getUserId().isEmpty()) {
-            errors.add("[Failed] User ID must not be null or empty");
-        }
-        if (req.getIdToken() == null || req.getIdToken().isEmpty()) {
-            errors.add("[Failed] IdToken must not be null or empty");
-        }
-
-        if (!errors.isEmpty()) {
-            res.setErrorCode(ErrorCode.BAD_REQUEST);
-            res.addMessage(String.join("\n", errors));
-            logger.error("[AuthService][{}] Invalid login request: {}", req.getUserId(), res.getMessage());
-            return false;
-        }
-        res.addMessage("[Success] Valid login request");
-        logger.info("[AuthService][{}] Valid login request for user", req.getUserId());
-        return true;
-    }
-
-    private boolean isIdTokenValid(LoginReq req, LoginRes res) {
-        TokenReq request = new TokenReq(
-                req.getIdToken(),
-                req.getUserId(),
-                Location.MAIN_AUTH.getVal()
-        );
-        TokenRes response = tokenService.tokenVerifier(request);
-
-        res.addMessage(response.getMessage());
-        if(response.isStatus()){
-            return true;
-        } else {
-            res.setErrorCode(response.getCode());
-            return false;
-        }
-    }
-
-    private boolean isUserIdExist(LoginReq req, LoginRes res) {
-        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
-            res.addMessage("[Success] User(Info) exists");
-            logger.info("[AuthService][{}] User(Info) exists, at Login", req.getUserId());
-            return true;
-        }
-        res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-        res.addMessage("[Failed] User(Info) not found");
-        logger.warn("[AuthService][{}] User(Info) not found, at Login", req.getUserId());
-        return false;
-    }
-
-    private UserStat getStatIfExists(LoginReq req, LoginRes res) {
+    private UserStat getStatIfExists(String userId, LoginRes res) {
         try {
-            UserStat userStat = loginTrans.getStatByUserId(req.getUserId());
-            res.addMessage("[Success] User(Stat) exists");
-            logger.info("[AuthService][{}] User(Stat) exists, at Login", req.getUserId());
+            UserStat userStat = loginTrans.getStatByUserId(userId);
+            res.addMessage("[Success] User(Stat) fetched");
+            logger.info("[AuthService][{}] User(Stat) fetched, at Login", userId);
             return userStat;
         } catch (RuntimeException err) {
             res.setErrorCode(ErrorCode.USER_NOT_FOUND);
             res.addMessage("[Failed] User(Stat) not found");
-            logger.warn("[AuthService][{}] User(Stat) not found, at Login", req.getUserId());
+            logger.warn("[AuthService][{}] User(Stat) not found, at Login", userId);
             return null;
         }
     }
 
-    private boolean updateStatData(UserStat userStat, LoginReq req, LoginRes res) {
+    private boolean updateStatData(String userId, UserStat userStat, LoginRes res) {
         try {
             LocalDateTime now = LocalDateTime.now();
 
             if (!isNewDay(now, userStat.getLastLoginAt())) {
                 res.addMessage("[Success] Stat data already up-to-date");
-                logger.info("[AuthService][{}] Stat data already up-to-date for user", req.getUserId());
+                logger.info("[AuthService][{}] Stat data already up-to-date for user", userId);
                 return true;
             }
             loginTrans.updateStatData(userStat, now);
             res.addMessage("[Success] Successfully updated stat data");
-            logger.info("[AuthService][{}] Updated stat data for user", req.getUserId());
+            logger.info("[AuthService][{}] Updated stat data for user", userId);
             return true;
 
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Failed to update stat data");
-            logger.error("[AuthService][{}] Failed to update stat data for user: {}", req.getUserId(), err.getMessage());
+            logger.error("[AuthService][{}] Failed to update stat data for user: {}", userId, err.getMessage());
             return false;
         }
     }
@@ -246,100 +183,89 @@ public class AuthService {
     }
 
     /*===========================
-       사용자 상태변경
-    ===========================*/
-
-    /*===========================
        사용자 회원탈퇴
     ===========================*/
-    public WithdrawRes withdraw(String token, WithdrawReq req) {
-        UserInfo userInfo = new UserInfo();
+    public WithdrawRes withdraw(WithdrawReq req) {
+        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         WithdrawRes res = new WithdrawRes(false, "[Info] Withdraw initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
-        if(!isRequestValid(req, res)) return res;
+        if(!isRequestValid(userId, req, res)) return res;
 
-        // 2. TokenId & User 값 검증
-        ValidationResult result = isUserValid(token, req, res);
-        if(!result.isValid() || result.getUserInfo() == null) return res;
+        // 2. 업데이트 데이터 준비
+        WithdrawDTO dto = getWithdrawData(userId, req, res);
+        if(dto == null) return res;
 
         // 3. Firebase & Database 업데이트
-        if(!isUserDeleted(result.getUserInfo(), req, res))return res;
+        if(!isUserDeleted(userId, dto, res))return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Withdraw successful");
-        logger.info("[AuthService][{}] Withdraw successful", req.getUserId());
+        logger.info("[AuthService][{}] Withdraw successful", userId);
         return res;
     }
 
-    private boolean isRequestValid(WithdrawReq req, WithdrawRes res) {
+    private boolean isRequestValid(String userId, WithdrawReq req, WithdrawRes res) {
         List<String> errors = new ArrayList<>();
 
-        if (req.getUserId() == null || req.getUserId().isEmpty()) {
-            errors.add("[Failed] User ID must not be null or empty");
-        }
         if (req.getReason() == null) {
             errors.add("[Failed] Reason must not be null");
         }
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
-            logger.error("[AuthService][{}] Invalid argument detected, while withdrawReq: {}", req.getUserId(), res.getMessage());
+            logger.error("[AuthService][{}] Invalid argument detected, while withdrawReq: {}", userId, res.getMessage());
             return false;
         }
         res.addMessage("[Success] Valid Withdraw request");
-        logger.info("[AuthService][{}] Valid Withdraw request", req.getUserId());
+        logger.info("[AuthService][{}] Valid Withdraw request", userId);
         return true;
     }
 
-    private ValidationResult isUserValid(String token, WithdrawReq req, WithdrawRes res) {
-        ValidationResult result = new ValidationResult(false, null);
-        StringBuilder tokenMsg = new StringBuilder();
-        StringBuilder userMsg = new StringBuilder();
+    private WithdrawDTO getWithdrawData(String userId, WithdrawReq req, WithdrawRes res) {
+        LocalDateTime now = LocalDateTime.now();
 
+        UserInfo user;
         try {
-            CompletableFuture<Boolean> tokenFuture = withdrawAsync.isTokenValid(token, req.getUserId(), tokenMsg);
-            CompletableFuture<UserInfo> userFuture = withdrawAsync.isUserExist(req.getUserId(), userMsg);
-            CompletableFuture.allOf(tokenFuture, userFuture).join();
-
-            Boolean tokenResult = tokenFuture.get();
-            UserInfo userResult = userFuture.get();
-
-            if (!tokenResult && userResult == null) {
-                res.setErrorCode(ErrorCode.UNAUTHORIZED);
-                res.addMessage("[Failed] Token invalid & User not found");
-                logger.error("[AuthService][{}] Withdraw user token is invalid and user not found at server: {} \n {}", req.getUserId(), tokenMsg.toString(), userMsg.toString());
-            } else if(!tokenResult) {
-                res.setErrorCode(ErrorCode.UNAUTHORIZED);
-                res.addMessage("[Failed] Token invalid");
-                logger.error("[AuthService][{}] Withdraw user token is invalid: {}", req.getUserId(), tokenMsg.toString());
-            } else if(userResult == null) {
-                res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-                res.addMessage("[Failed] User not found");
-                logger.error("[AuthService][{}] Withdraw user not exist at server: {}", req.getUserId(), userMsg.toString());
-            } else {
-                result.setValid(true);
-                result.setUserInfo(userResult);
-                res.addMessage("[Info] Validation complete");
-                logger.info("[AuthService][{}] Withdraw user validation complete \n {} \n {}", req.getUserId(), tokenMsg.toString(), userMsg.toString());
-            }
-            return result;
+            user = withdrawTrans.getUsersByUserId(userId);
+            user.setStatus(UserStatus.DELETED.getValue());
+            user.setDeletedAt(now);
         } catch (Exception err) {
-            res.addMessage("[Failed] Validation process exception");
-            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
-            logger.error("[AuthService][{}] Withdraw validation process exception: {} \n {} \n {}", req.getUserId(), err.getMessage(), tokenMsg.toString(), userMsg.toString());
-            return result;
+            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
+            res.addMessage("[Failed] User not found");
+            logger.error("[AuthService][{}] User not found at withdraw process: {}", userId, err.getMessage());
+            return null;
         }
+
+        AdminWithdrawInfo reason;
+        try {
+            reason = withdrawTrans.getWithdrawInfoById(req.getReason());
+            reason.setCount(reason.getCount() + 1);
+        } catch (Exception err) {
+            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
+            res.addMessage("[Failed] Reason not found");
+            logger.error("[AuthService][{}] Reason found at withdraw process: {}", userId, err.getMessage());
+            return null;
+        }
+        AdminWithdrawStat status = AdminWithdrawStat.builder()
+                .userId(userId)
+                .userWithdrawInfo(reason)
+                .userWithdrawAt(now)
+                .build();
+        return WithdrawDTO.builder()
+                .user(user)
+                .status(status)
+                .build();
     }
 
-    private boolean isUserDeleted(UserInfo entity, WithdrawReq req, WithdrawRes res) {
+    private boolean isUserDeleted(String userId, WithdrawDTO dto, WithdrawRes res) {
         boolean status = false;
         StringBuilder firebaseMsg = new StringBuilder();
         StringBuilder databaseMsg = new StringBuilder();
 
         try {
-            CompletableFuture<Boolean> firebaseFuture = withdrawAsync.isUserDeletedFromFirebase(req.getUserId(), firebaseMsg);
-            CompletableFuture<Boolean> databaseFuture = withdrawAsync.isUserDeletedFromDatabase(entity, databaseMsg);
+            CompletableFuture<Boolean> firebaseFuture = withdrawAsync.isUserDeletedFromFirebase(userId, firebaseMsg);
+            CompletableFuture<Boolean> databaseFuture = withdrawAsync.isUserDeletedFromDatabase(dto, databaseMsg);
             CompletableFuture.allOf(firebaseFuture, databaseFuture).join();
 
             Boolean firebaseResult = firebaseFuture.get();
@@ -348,30 +274,27 @@ public class AuthService {
             if(!firebaseResult && !databaseResult) {
                 res.setErrorCode(ErrorCode.INTERNAL_ERROR);
                 res.addMessage("[Failed] Firebase & database error detected");
-                logger.error("[AuthService][{}] Failed to delete user from firebase & database: {} \n {}", req.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from firebase & database: {} \n {}", userId, firebaseMsg.toString(), databaseMsg.toString());
             } else if (!firebaseResult) {
                 res.setErrorCode(ErrorCode.FIREBASE_ERROR);
                 res.addMessage("[Failed] Firebase error detected");
-                logger.error("[AuthService][{}] Failed to delete user from firebase: {}", req.getUserId(), firebaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from firebase: {}", userId, firebaseMsg.toString());
             } else if (!databaseResult) {
                 res.setErrorCode(ErrorCode.DATABASE_ERROR);
                 res.addMessage("[Failed] Database error detected");
-                logger.error("[AuthService][{}] Failed to delete user from database: {}", req.getUserId(), databaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from database: {}", userId, databaseMsg.toString());
             } else {
                 status = true;
                 res.addMessage("[Info] User data deleted");
-                logger.info("[AuthService][{}] Withdraw user data deleted: \n {} \n {}", req.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
+                logger.info("[AuthService][{}] Withdraw user data deleted: \n {} \n {}", userId, firebaseMsg.toString(), databaseMsg.toString());
             }
             return status;
 
         } catch (Exception err) {
             res.addMessage("[Failed] Delete process exception");
             res.setErrorCode(ErrorCode.INTERNAL_ERROR);
-            logger.error("[AuthService][{}] Withdraw delete process exception: {} \n {} \n {}", req.getUserId(), err.getMessage(), firebaseMsg.toString(), databaseMsg.toString());
+            logger.error("[AuthService][{}] Withdraw delete process exception: {} \n {} \n {}", userId, err.getMessage(), firebaseMsg.toString(), databaseMsg.toString());
             return false;
         }
     }
-    /*===========================
-       유틸리티
-    ===========================*/
 }

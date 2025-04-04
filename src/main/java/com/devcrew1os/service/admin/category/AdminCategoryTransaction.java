@@ -1,7 +1,7 @@
 package com.devcrew1os.service.admin.category;
 
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryData;
-import com.devcrew1os.entity.admin.AdminCategory;
+import com.devcrew1os.entity.admin.challenge.AdminCategory;
 import com.devcrew1os.repository.admin.AdminCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

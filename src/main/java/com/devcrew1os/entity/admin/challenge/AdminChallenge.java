@@ -1,4 +1,4 @@
-package com.devcrew1os.entity.admin;
+package com.devcrew1os.entity.admin.challenge;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

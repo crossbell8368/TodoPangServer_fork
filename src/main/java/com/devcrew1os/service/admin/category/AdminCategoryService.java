@@ -3,7 +3,7 @@ package com.devcrew1os.service.admin.category;
 import com.devcrew1os.common.enums.CategoryStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.category.*;
-import com.devcrew1os.entity.admin.AdminCategory;
+import com.devcrew1os.entity.admin.challenge.AdminCategory;
 import com.devcrew1os.repository.admin.AdminCategoryRepository;
 import com.devcrew1os.repository.admin.AdminUserRepository;
 import lombok.RequiredArgsConstructor;

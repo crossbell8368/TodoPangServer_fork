@@ -5,8 +5,12 @@ plugins {
 }
 
 group = 'com.devcrew1os'
-version = '0.5'
+version = '1.0.0'
 sourceCompatibility = '11'
+
+bootJar {
+    archiveFileName = 'todopangServer.jar'
+}
 
 configurations {
     compileOnly {

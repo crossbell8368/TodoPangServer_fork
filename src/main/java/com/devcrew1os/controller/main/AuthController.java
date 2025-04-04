@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/main/auth")
 public class AuthController {
 
     private final Response<?> response;
@@ -30,12 +30,8 @@ public class AuthController {
        로그인
     ===========================*/
     @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestHeader("Authorization") String token,
-            @RequestBody LoginReq req
-    ) {
-        req.setIdToken(token.substring(7));
-        LoginRes res = authService.login(req);
+    public ResponseEntity<?> login() {
+        LoginRes res = authService.login();
         return response.handleResult(res);
     }
 
@@ -44,10 +40,9 @@ public class AuthController {
     ===========================*/
     @PostMapping("/withdraw")
     public ResponseEntity<?> withdraw(
-            @RequestHeader("Authorization") String token,
             @RequestBody WithdrawReq req
             ) {
-        WithdrawRes res = authService.withdraw(token.substring(7), req);
+        WithdrawRes res = authService.withdraw(req);
         return response.handleResult(res);
     }
 }

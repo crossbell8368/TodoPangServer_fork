@@ -2,12 +2,13 @@ package com.devcrew1os.dto.main.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 @AllArgsConstructor
 public class WithdrawReq {
-    private String userId;
     private Integer reason;
 }

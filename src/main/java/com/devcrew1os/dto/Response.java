@@ -33,7 +33,7 @@ public class Response<T> {
        응답 상태 Enum
     ===========================*/
 
-    private enum ResponseResult {
+    public enum ResponseResult {
         SUCCESS, FAIL
     }
 

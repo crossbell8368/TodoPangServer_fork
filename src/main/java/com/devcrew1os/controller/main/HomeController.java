@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/home")
+@RequestMapping("/main/home")
 public class HomeController {
 
     private final Response<?> response;

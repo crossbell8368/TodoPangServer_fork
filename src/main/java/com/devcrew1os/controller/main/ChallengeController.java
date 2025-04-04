@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/challenge")
+@RequestMapping("/main/challenge")
 public class ChallengeController {
 
     private final Response<?> response;

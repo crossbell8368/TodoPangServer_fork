@@ -1,4 +1,4 @@
-package com.devcrew1os.config;
+package com.devcrew1os.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

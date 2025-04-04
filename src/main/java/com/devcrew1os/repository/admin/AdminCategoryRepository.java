@@ -1,6 +1,6 @@
 package com.devcrew1os.repository.admin;
 
-import com.devcrew1os.entity.admin.AdminCategory;
+import com.devcrew1os.entity.admin.challenge.AdminCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
