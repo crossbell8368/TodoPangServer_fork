@@ -5,9 +5,6 @@ import com.devcrew1os.dto.main.home.*;
 import com.devcrew1os.entity.main.challenge.ChallengeCategory;
 import com.devcrew1os.entity.main.challenge.ChallengeStat;
 import com.devcrew1os.entity.main.user.UserInfo;
-import com.devcrew1os.repository.main.users.UserInfoRepository;
-import com.devcrew1os.repository.main.challenge.ChallengeCategoryRepository;
-import com.devcrew1os.repository.main.challenge.ChallengeStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +16,6 @@ import java.util.*;
 @RequiredArgsConstructor
 public class HomeService {
 
-    private final ChallengeCategoryRepository categoryRepo;
-    private final ChallengeStatRepository statRepo;
-    private final UserInfoRepository userRepo;
     private final HomeTransaction homeTrans;
 
     private static final Logger logger = LoggerFactory.getLogger(HomeService.class);
@@ -29,122 +23,89 @@ public class HomeService {
     /*===========================
        사용자 정보조회
     ===========================*/
-    public HomeRes getHomes(HomeReq req) {
+    public HomeRes getHomes(String userId) {
         HomeRes res = new HomeRes(false, false, "[Info] Get homes initiated", ErrorCode.OK);
 
-        if(!isRequestValid(req, res)) return res;
-
-        if(!isUserIdExist(req, res)) return res;
-
-        HomeData data = getHomeData(req, res);
+        HomeData data = getHomeData(userId, res);
         if(data == null) {
             res.addMessage("[Failed] user data is unstable");
-            logger.error("[HomeService][{}] failed to prepared home data", req.getUserId());
+            logger.error("[HomeService][{}] failed to prepared home data", userId);
             return res;
         }
 
         res.setData(data);
         res.setSuccess(true);
         res.addMessage("[Info] Successfully get home data");
-        logger.info("[HomeService][{}] Successfully get home data", req.getUserId());
+        logger.info("[HomeService][{}] Successfully get home data", userId);
         return res;
     }
 
-    private boolean isRequestValid(HomeReq req, HomeRes res) {
-        List<String> errors = new ArrayList<>();
+    private HomeData getHomeData(String userId, HomeRes res) {
 
-        if (req.getUserId() == null || req.getUserId().isEmpty()) {
-            errors.add("[Failed] UserID must not be null or empty");
-        }
-        if (!errors.isEmpty()) {
-            res.setErrorCode(ErrorCode.BAD_REQUEST);
-            res.addMessage(String.join("\n", errors));
-            logger.error("[HomeService][{}] Invalid argument detected during getHomes: {}", req.getUserId(), res.getMessage());
-            return false;
-        }
-        res.addMessage("[Success] GetChallengeList request is valid");
-        logger.info("[HomeService][{}] getHomes request is valid", req.getUserId());
-        return true;
-    }
-
-    private boolean isUserIdExist(HomeReq req, HomeRes res) {
-        if (userRepo.existsUserInfoByUserId(req.getUserId())) {
-            res.addMessage("[Success] User(Info) exists");
-            logger.info("[HomeService][{}] User exists, at getHomes", req.getUserId());
-            return true;
-        }
-        res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-        res.addMessage("[Failed] User(Info) not found");
-        logger.warn("[HomeService][{}] User not found, at getHomes", req.getUserId());
-        return false;
-    }
-
-    private HomeData getHomeData(HomeReq req, HomeRes res) {
-
-        HomeUserData userData = getUserData(req);
+        HomeUserData userData = getUserData(userId);
         if (userData == null) {
             res.setErrorCode(ErrorCode.USER_NOT_FOUND);
             res.addMessage("[Failed] User(Info) not found");
             return null;
         }
 
-        Map<Integer, String> categories = getChallengeCategories(req);
+        Map<Integer, String> categories = getChallengeCategories(userId);
         if (categories == null) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Categories not found");
             return null;
         }
 
-        List<HomeChallengeData> popularChallenges = getChallengeStats(req);
+        List<HomeChallengeData> popularChallenges = getChallengeStats(userId);
         if(popularChallenges == null) {
-            res.setErrorCode(ErrorCode.FIREBASE_ERROR);
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] ChallengeStat not found");
             return null;
         }
 
-        logger.info("[HomeService][{}] Successfully prepared home data", req.getUserId());
+        logger.info("[HomeService][{}] Successfully prepared home data", userId);
         return new HomeData(userData, categories, popularChallenges);
     }
 
-    private HomeUserData getUserData(HomeReq req) {
+    private HomeUserData getUserData(String userId) {
 
         try {
-            UserInfo userData = homeTrans.getUserInfo(req);
+            UserInfo userData = homeTrans.getUserInfo(userId);
             HomeUserData data = new HomeUserData(
                     userData.getUserName(),
                     userData.getStat().getTotalFinishedChallenges(),
                     userData.getStat().getTotalRegisteredChallenges()
             );
-            logger.info("[HomeService][{}] Successfully retrieved userData", req.getUserId());
+            logger.info("[HomeService][{}] Successfully retrieved userData", userId);
             return data;
         } catch (Exception err) {
-            logger.error("[HomeService][{}] Failed to search user data: {}", req.getUserId(), err.getMessage());
+            logger.error("[HomeService][{}] Failed to search user data: {}", userId, err.getMessage());
             return null;
         }
     }
 
-    private Map<Integer, String> getChallengeCategories(HomeReq req) {
+    private Map<Integer, String> getChallengeCategories(String userId) {
 
         Map<Integer, String> dataMap = new HashMap<>();
         try {
-            List<ChallengeCategory> categoryList = categoryRepo.findAllByOrderByIdDesc();
+            List<ChallengeCategory> categoryList = homeTrans.getChallengeCategories();
             for(ChallengeCategory category : categoryList) {
                 dataMap.put(category.getId(), category.getTitle());
             }
-            logger.info("[HomeService][{}] Successfully retrieved {} categories", req.getUserId(), categoryList.size());
+            logger.info("[HomeService][{}] Successfully retrieved {} categories", userId, categoryList.size());
             return dataMap;
 
         } catch (Exception err) {
-            logger.error("[HomeService][{}] Failed to search challenge category data", req.getUserId());
+            logger.error("[HomeService][{}] Failed to search challenge category data: {}", userId, err.getMessage());
             return null;
         }
     }
 
-    private List<HomeChallengeData> getChallengeStats(HomeReq req) {
+    private List<HomeChallengeData> getChallengeStats(String userId) {
 
         List<HomeChallengeData> dataList = new ArrayList<>();
         try {
-            List<ChallengeStat> statList = statRepo.findTop10ByOrderByPopularityDesc();
+            List<ChallengeStat> statList = homeTrans.getChallengeStats();
             for(ChallengeStat stat : statList) {
                 dataList.add(
                         HomeChallengeData.builder()
@@ -155,10 +116,10 @@ public class HomeService {
                                 .build()
                 );
             }
-            logger.info("[HomeService][{}] Successfully retrieved {} challenge data", req.getUserId(), dataList.size());
+            logger.info("[HomeService][{}] Successfully retrieved {} challenge data", userId, dataList.size());
             return dataList;
         } catch (Exception err) {
-            logger.error("[HomeService][{}] Failed to search challenge data", req.getUserId());
+            logger.error("[HomeService][{}] Failed to search challenge data: {}", userId, err.getMessage());
             return null;
         }
     }

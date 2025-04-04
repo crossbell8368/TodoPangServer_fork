@@ -5,6 +5,7 @@ import com.devcrew1os.dto.main.auth.*;
 import com.devcrew1os.service.main.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,7 +23,10 @@ public class AuthController {
     public ResponseEntity<?> signup(
             @RequestBody SignupReq req
     ) {
-        SignupRes res = authService.signup(req);
+        SignupRes res = authService.signup(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                req
+        );
         return response.handleResult(res);
     }
 
@@ -31,7 +35,9 @@ public class AuthController {
     ===========================*/
     @PostMapping("/login")
     public ResponseEntity<?> login() {
-        LoginRes res = authService.login();
+        LoginRes res = authService.login(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
         return response.handleResult(res);
     }
 
@@ -42,7 +48,10 @@ public class AuthController {
     public ResponseEntity<?> withdraw(
             @RequestBody WithdrawReq req
             ) {
-        WithdrawRes res = authService.withdraw(req);
+        WithdrawRes res = authService.withdraw(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                req
+        );
         return response.handleResult(res);
     }
 }

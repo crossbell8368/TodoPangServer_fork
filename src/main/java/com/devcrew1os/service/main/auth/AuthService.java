@@ -12,7 +12,6 @@ import com.devcrew1os.repository.main.users.UserInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -36,9 +35,8 @@ public class AuthService {
     /*===========================
        사용자 회원가입
     ===========================*/
-    public SignupRes signup(SignupReq req) {
+    public SignupRes signup(String userId, SignupReq req) {
         LocalDateTime now = LocalDateTime.now();
-        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         SignupRes res = new SignupRes(false, "[Info] Signup initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
@@ -123,17 +121,14 @@ public class AuthService {
     /*===========================
        사용자 로그인
     ===========================*/
-    public LoginRes login() {
+    public LoginRes login(String userId) {
         LoginRes res = new LoginRes(false, "[Info] Login initiated", ErrorCode.OK);
 
-        // 1. userId 추출
-        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        // 4. 사용자 통계 정보 가져오기
+        // 1. 사용자 통계 정보 fetch
         UserStat userStat = getStatIfExists(userId, res);
         if (userStat == null) return res;
 
-        // 5. 정보 업데이트
+        // 2. 정보 업데이트
         if (!updateStatData(userId, userStat, res)) return res;
 
         res.setSuccess(true);
@@ -185,8 +180,7 @@ public class AuthService {
     /*===========================
        사용자 회원탈퇴
     ===========================*/
-    public WithdrawRes withdraw(WithdrawReq req) {
-        String userId = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public WithdrawRes withdraw(String userId, WithdrawReq req) {
         WithdrawRes res = new WithdrawRes(false, "[Info] Withdraw initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
