@@ -21,6 +21,7 @@ public class SecurityConfig {
                 .csrf().disable()
                 .addFilterBefore(tokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
+                        .antMatchers("/admin/auth/logout").permitAll()
                         .anyRequest().authenticated()
         );
         return http.build();

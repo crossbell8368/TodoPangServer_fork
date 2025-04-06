@@ -1,5 +1,8 @@
 package com.devcrew1os.dto;
 
+import com.devcrew1os.dto.admin.auth.AdminLoginRes;
+import com.devcrew1os.dto.admin.auth.AdminSignupRes;
+import com.devcrew1os.dto.admin.auth.AdminWithdrawRes;
 import com.devcrew1os.dto.admin.category.GetAdminCategoryRes;
 import com.devcrew1os.dto.admin.category.SetAdminCategoryRes;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryRes;
@@ -98,6 +101,25 @@ public class Response<T> {
     /*===========================
        Result 객체 처리: Admin
     ===========================*/
+
+    // auth
+    public ResponseEntity<?> handleResult(AdminSignupRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    public ResponseEntity<?> handleResult(AdminLoginRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
+
+    public ResponseEntity<?> handleResult(AdminWithdrawRes res) {
+        return res.isSuccess()
+                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
+                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    }
 
     // category
     public ResponseEntity<?> handleResult(GetAdminCategoryRes res) {

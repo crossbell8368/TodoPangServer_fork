@@ -1,4 +1,4 @@
 package com.devcrew1os.service.admin.challenge;
 
-public class ChallengeService {
+public class AdminChallengeService {
 }

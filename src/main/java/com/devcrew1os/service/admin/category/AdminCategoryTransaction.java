@@ -17,11 +17,6 @@ public class AdminCategoryTransaction {
 
     private final AdminCategoryRepository categoryRepo;
 
-    @Transactional
-    public void saveCategories(List<AdminCategory> categories) {
-        categoryRepo.saveAll(categories);
-    }
-
     public List<AdminCategory> getCategoryByIdList(List<Integer> idList) {
         List<AdminCategory> categories = categoryRepo.findAllById(idList);
 
@@ -36,8 +31,12 @@ public class AdminCategoryTransaction {
 
             throw new RuntimeException("Categories not found: " + missingIds);
         }
-
         return categories;
+    }
+
+    @Transactional
+    public void saveCategories(List<AdminCategory> categories) {
+        categoryRepo.saveAll(categories);
     }
 
     @Transactional
@@ -48,8 +47,8 @@ public class AdminCategoryTransaction {
             if (updatedData == null) {
                 throw new IllegalArgumentException("[Error] No update data found for ID: " + entity.getId());
             }
-            entity.setStatus(updatedData.getUpdatedCategoryStatus());
-            entity.setTitle(updatedData.getUpdatedCategoryTitle());
+            entity.setStatus(updatedData.getCategoryStatus());
+            entity.setTitle(updatedData.getCategoryTitle());
         }
     }
 }

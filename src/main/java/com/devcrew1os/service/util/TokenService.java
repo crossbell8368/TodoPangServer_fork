@@ -43,4 +43,15 @@ public class TokenService {
             return Optional.empty();
         }
     }
+
+    public void tokenCleaner(String idToken) {
+        String redisKey = String.format("id_token:%s", idToken);
+        String cachedId = redisTemplate.opsForValue().get(redisKey);
+        redisTemplate.delete(redisKey);
+        if (cachedId != null) {
+            logger.info("[TokenService][{}] Successfully removed token data", cachedId);
+        } else {
+            logger.warn("[TokenService] Token not found in cache, already expired or removed: {}", idToken);
+        }
+    }
 }

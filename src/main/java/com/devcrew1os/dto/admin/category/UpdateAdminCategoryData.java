@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateAdminCategoryData {
-    private Integer updatedCategoryId;
-    private Integer updatedCategoryStatus;
-    private String updatedCategoryTitle;
+    private Integer categoryId;
+    private Integer categoryStatus;
+    private String categoryTitle;
 }
