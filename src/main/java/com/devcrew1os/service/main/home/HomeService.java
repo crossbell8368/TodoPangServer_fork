@@ -24,7 +24,7 @@ public class HomeService {
        사용자 정보조회
     ===========================*/
     public HomeRes getHomes(String userId) {
-        HomeRes res = new HomeRes(false, false, "[Info] Get homes initiated", ErrorCode.OK);
+        HomeRes res = new HomeRes(false, "[Info] Get homes initiated", ErrorCode.OK);
 
         HomeData data = getHomeData(userId, res);
         if(data == null) {

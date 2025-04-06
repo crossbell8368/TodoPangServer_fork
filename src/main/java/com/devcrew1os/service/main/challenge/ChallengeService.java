@@ -28,7 +28,7 @@ public class ChallengeService {
        도전과제 목록조회
     ===========================*/
     public GetChallengesRes getChallenges(String userId) {
-        GetChallengesRes res = new GetChallengesRes(false, false, "[Info] Get challenges initiated", ErrorCode.OK);
+        GetChallengesRes res = new GetChallengesRes(false, "[Info] Get challenges initiated", ErrorCode.OK);
 
         GetChallengesData data = getChallengesData(userId, res);
         if (data == null) return res;

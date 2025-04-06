@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 public class AdminCategoryService {
 
     private final AdminCategoryRepository categoryRepo;
-    private final AdminUserRepository userRepo;
 
     private final AdminCategoryTransaction categoryTrans;
 
@@ -31,7 +30,7 @@ public class AdminCategoryService {
        카테고리 목록조회
     ===========================*/
     public GetAdminCategoryRes getAdminCategories(String adminId) {
-        GetAdminCategoryRes res = new GetAdminCategoryRes(false, false, "[Info] Get admin categories initiated", ErrorCode.OK);
+        GetAdminCategoryRes res = new GetAdminCategoryRes(false, "[Info] Get admin categories initiated", ErrorCode.OK);
 
         GetAdminCategoryData[] data = getCategoryData(adminId, res);
         if (data == null) return res;
@@ -68,7 +67,7 @@ public class AdminCategoryService {
        카테고리 추가
     ===========================*/
     public SetAdminCategoryRes setAdminCategories(String adminId, SetAdminCategoryReq req) {
-        SetAdminCategoryRes  res = new SetAdminCategoryRes(false, false, "[Info] Set categories initiated", ErrorCode.OK);
+        SetAdminCategoryRes  res = new SetAdminCategoryRes(false, "[Info] Set categories initiated", ErrorCode.OK);
 
         if(!isRequestValid(adminId, req, res)) return res;
 
@@ -135,7 +134,7 @@ public class AdminCategoryService {
        카테고리 변경
     ===========================*/
     public UpdateAdminCategoryRes updateAdminCategory(String adminId, UpdateAdminCategoryReq req) {
-        UpdateAdminCategoryRes res = new UpdateAdminCategoryRes(false, false, "[Info] Update categories initiated", ErrorCode.OK);
+        UpdateAdminCategoryRes res = new UpdateAdminCategoryRes(false, "[Info] Update categories initiated", ErrorCode.OK);
 
         if(!isRequestValid(adminId, req, res)) return res;
 

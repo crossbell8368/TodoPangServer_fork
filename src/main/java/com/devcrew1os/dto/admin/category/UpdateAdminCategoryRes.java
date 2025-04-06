@@ -2,16 +2,16 @@ package com.devcrew1os.dto.admin.category;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.BaseResponse;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
-@AllArgsConstructor
-public class UpdateAdminCategoryRes extends BaseResponse {
+public class UpdateAdminCategoryRes extends BaseResponse<Void> {
 
-    public UpdateAdminCategoryRes(boolean isSuccess, boolean isDataExist, String message, ErrorCode errorCode) {
-        super(isSuccess, isDataExist, message, errorCode);
+    public UpdateAdminCategoryRes(
+            boolean isSuccess,
+            String message,
+            ErrorCode errorCode
+    ) {
+        super(isSuccess, message, errorCode, null);
     }
 }

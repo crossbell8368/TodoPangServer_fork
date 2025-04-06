@@ -44,99 +44,33 @@ public class Response<T> {
        Response 분기
     ===========================*/
 
-    private <T> ResponseEntity<Body<T>> success(HttpStatus status, String message, T data) {
+    private <T> ResponseEntity<Body<T>> success (BaseResponse<T> res) {
+        HttpStatus status = res.getErrorCode().getHttpStatus();
+        T data = res.getData() != null ? res.getData() : (T) Boolean.TRUE;
+
         return ResponseEntity.status(status)
-                .body(new Body<>(status.value(), ResponseResult.SUCCESS, message, data));
+                .body(new Body<>(
+                        status.value(),
+                        ResponseResult.SUCCESS,
+                        res.getMessage(),
+                        data
+                ));
     }
 
-    private ResponseEntity<Body<T>> success(HttpStatus status, String message) {
+    private <T> ResponseEntity<Body<T>> fail (BaseResponse<T> res) {
+        HttpStatus status = res.getErrorCode().getHttpStatus();
+        T data = res.getData() != null ? res.getData() : (T) Boolean.FALSE;
+
         return ResponseEntity.status(status)
-                .body(new Body<>(status.value(), ResponseResult.SUCCESS, message, (T) Boolean.TRUE));
+                .body(new Body<>(
+                        status.value(),
+                        ResponseResult.FAIL,
+                        res.getMessage(),
+                        data
+                ));
     }
 
-    private ResponseEntity<Body<T>> failed(HttpStatus status, String message) {
-        return ResponseEntity.status(status)
-                .body(new Body<>(status.value(), ResponseResult.FAIL, message, (T) Boolean.FALSE));
-    }
-
-    /*===========================
-       Result 객체 처리: Main
-    ===========================*/
-
-    // signup
-    public ResponseEntity<?> handleResult(SignupRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    // login
-    public ResponseEntity<?> handleResult(LoginRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    // withdraw
-    public ResponseEntity<?> handleResult(WithdrawRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    // home
-    public ResponseEntity<?> handleResult(HomeRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    // challenge
-    public ResponseEntity<?> handleResult(GetChallengesRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    /*===========================
-       Result 객체 처리: Admin
-    ===========================*/
-
-    // auth
-    public ResponseEntity<?> handleResult(AdminSignupRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    public ResponseEntity<?> handleResult(AdminLoginRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    public ResponseEntity<?> handleResult(AdminWithdrawRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    // category
-    public ResponseEntity<?> handleResult(GetAdminCategoryRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage(), res.getData())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    public ResponseEntity<?> handleResult(SetAdminCategoryRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
-    }
-
-    public ResponseEntity<?> handleResult(UpdateAdminCategoryRes res) {
-        return res.isSuccess()
-                ? success(res.getErrorCode().getHttpStatus(), res.getMessage())
-                : failed(res.getErrorCode().getHttpStatus(), res.getMessage());
+    public <T> ResponseEntity<?> handleResult(BaseResponse<T> res) {
+        return res.isSuccess() ? success(res) : fail(res);
     }
 }
