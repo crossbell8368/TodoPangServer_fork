@@ -23,8 +23,9 @@ public class ChallengeReviewStat {
     @Column(name = "challenge_info_id")
     private int infoId;
 
-    @Column(name = "challenge_review_info_id")
-    private int reviewInfoId;
+    @ManyToOne
+    @JoinColumn(name = "challenge_review_info_id")
+    private ChallengeReviewInfo reviewInfo;
 
     @Column(name = "challenge_review_count", nullable = false)
     private int count;

@@ -2,12 +2,14 @@ package com.devcrew1os.dto.main.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.BaseResponse;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-public class GetChallengesRes extends BaseResponse<GetChallengesData> {
+@AllArgsConstructor
+public class ChallengeListRes extends BaseResponse<ChallengeListData> {
 
-    public GetChallengesRes(
+    public ChallengeListRes(
             boolean isSuccess,
             String message,
             ErrorCode errorCode

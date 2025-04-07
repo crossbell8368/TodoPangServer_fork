@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class GetChallengesInfo {
+public class ChallengeListInfo {
     private int id;
     private int category;
     private String title;

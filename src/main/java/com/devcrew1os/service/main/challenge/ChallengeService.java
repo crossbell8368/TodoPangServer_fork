@@ -1,9 +1,7 @@
 package com.devcrew1os.service.main.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.dto.main.challenge.GetChallengesData;
-import com.devcrew1os.dto.main.challenge.GetChallengesInfo;
-import com.devcrew1os.dto.main.challenge.GetChallengesRes;
+import com.devcrew1os.dto.main.challenge.*;
 import com.devcrew1os.entity.main.challenge.ChallengeCategory;
 import com.devcrew1os.entity.main.challenge.ChallengeInfo;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +22,10 @@ public class ChallengeService {
     /*===========================
        도전과제 목록조회
     ===========================*/
-    public GetChallengesRes getChallenges(String userId) {
-        GetChallengesRes res = new GetChallengesRes(false, "[Info] Get challenges initiated", ErrorCode.OK);
+    public ChallengeListRes getChallengeList(String userId) {
+        ChallengeListRes res = new ChallengeListRes(false, "[Info] Get challenges initiated", ErrorCode.OK);
 
-        GetChallengesData data = getChallengesData(userId, res);
+        ChallengeListData data = getChallengesData(userId, res);
         if (data == null) return res;
 
         res.setData(data);
@@ -41,7 +36,7 @@ public class ChallengeService {
     }
 
     // Response fetch
-    private GetChallengesData getChallengesData(String userId, GetChallengesRes res) {
+    private ChallengeListData getChallengesData(String userId, ChallengeListRes res) {
 
         Map<Integer, String> categories = getCategories(userId);
         if(categories == null) {
@@ -50,7 +45,7 @@ public class ChallengeService {
             return null;
         }
 
-        List<GetChallengesInfo> infos = getInfos(userId);
+        List<ChallengeListInfo> infos = getInfos(userId);
         if(infos == null || infos.isEmpty()) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] During get challenge data, database error detected");
@@ -58,7 +53,7 @@ public class ChallengeService {
         }
 
         res.addMessage("[Info] Successfully get challenge categories & infos");
-        return new GetChallengesData(categories, infos);
+        return new ChallengeListData(categories, infos);
     }
 
     // Category fetch
@@ -66,7 +61,7 @@ public class ChallengeService {
 
         Map<Integer, String> categoryMap = new HashMap<>();
         try {
-            List<ChallengeCategory> categoryList = transaction.getCategories();
+            List<ChallengeCategory> categoryList = transaction.getCategoryList();
             for(ChallengeCategory category : categoryList) {
                 categoryMap.put(category.getId(), category.getTitle());
             }
@@ -80,14 +75,14 @@ public class ChallengeService {
     }
 
     // Info fetch
-    private List<GetChallengesInfo> getInfos(String userId) {
+    private List<ChallengeListInfo> getInfos(String userId) {
 
-        List<GetChallengesInfo> infoDTOList = new ArrayList<>();
+        List<ChallengeListInfo> infoDTOList = new ArrayList<>();
         try {
-            List<ChallengeInfo> infoEntityList = transaction.getInfos();
+            List<ChallengeInfo> infoEntityList = transaction.getInfoList();
             for(ChallengeInfo entity : infoEntityList) {
                 infoDTOList.add(
-                        new GetChallengesInfo(
+                        new ChallengeListInfo(
                                 entity.getId(),
                                 entity.getCategory().getId(),
                                 entity.getTitle(),
@@ -103,5 +98,55 @@ public class ChallengeService {
             logger.error("[ChallengeService][{}] Failed to search challenge data: {}", userId, err.getMessage());
             return null;
         }
+    }
+
+    /*===========================
+       도전과제 상세조회
+    ===========================*/
+    public ChallengeDetailRes getChallengeDetail(String userId, ChallengeDetailReq req) {
+        ChallengeDetailRes res = new ChallengeDetailRes(false, "[Info] Fetch challenge detail initiated", ErrorCode.OK);
+
+        // 1. req 검증
+        if(!isRequestValid(userId, req, res)) return res;
+
+        // 2. 응답객체 준비
+        ChallengeDetailData data = getChallengeDetailData(userId, req, res);
+        if(data == null) return res;
+
+        res.setData(data);
+        res.setSuccess(true);
+        res.addMessage("[Info] Successfully fetch challenge detail");
+        logger.info("[ChallengeService][{}] Successfully fetch challenge detail", userId);
+        return res;
+    }
+
+    private boolean isRequestValid(String userId, ChallengeDetailReq req, ChallengeDetailRes res) {
+        List<String> errors = new ArrayList<>();
+
+        if (req.getChallengeId() == null) {
+            errors.add("[Failed] ChallengeId must not be null");
+        }
+        if (!errors.isEmpty()) {
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            res.addMessage(String.join("\n", errors));
+            logger.error("[ChallengeService][{}] Invalid argument detected, at fetch challenge detail: {}", userId, res.getMessage());
+            return false;
+        }
+        res.addMessage("[Success] Valid Withdraw request");
+        logger.info("[ChallengeService][{}] Valid fetch challenge detail request", userId);
+        return true;
+    }
+
+    private ChallengeDetailData getChallengeDetailData(String userId, ChallengeDetailReq req, ChallengeDetailRes res) {
+        ChallengeDetailData data = new ChallengeDetailData();
+        try {
+            data = transaction.getChallengeDetailData(req.getChallengeId());
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
+            res.addMessage("[Failed] Failed to fetch challenge data");
+            logger.error("[ChallengeService][{}] Failed to fetch challenge detail: {}", userId, err.getMessage());
+            return null;
+        }
+        return data;
     }
 }

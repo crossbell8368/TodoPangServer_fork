@@ -7,7 +7,7 @@ import java.util.Map;
 
 @Getter
 @AllArgsConstructor
-public class GetChallengesData {
+public class ChallengeListData {
     private Map<Integer, String> categories;
-    private List<GetChallengesInfo> infoData;
+    private List<ChallengeListInfo> infoData;
 }
