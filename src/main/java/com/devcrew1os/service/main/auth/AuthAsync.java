@@ -12,9 +12,9 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
-public class WithdrawAsync {
+public class AuthAsync {
 
-    private final WithdrawTransaction transaction;
+    private final AuthTransaction transaction;
 
     @Async
     public CompletableFuture<Boolean> isUserDeletedFromFirebase(String userId, StringBuilder msg) {

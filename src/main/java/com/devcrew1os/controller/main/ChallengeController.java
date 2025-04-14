@@ -1,9 +1,7 @@
 package com.devcrew1os.controller.main;
 
 import com.devcrew1os.dto.Response;
-import com.devcrew1os.dto.main.challenge.ChallengeDetailReq;
-import com.devcrew1os.dto.main.challenge.ChallengeDetailRes;
-import com.devcrew1os.dto.main.challenge.ChallengeListRes;
+import com.devcrew1os.dto.main.challenge.*;
 import com.devcrew1os.service.main.challenge.ChallengeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +38,20 @@ public class ChallengeController {
             @RequestBody ChallengeDetailReq req
     ){
         ChallengeDetailRes res = service.getChallengeDetail(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                req
+        );
+        return response.handleResult(res);
+    }
+
+    /*===========================
+       도전과제 등록
+    ===========================*/
+    @PostMapping("/info/register")
+    public ResponseEntity<?> registerChallenge(
+            @RequestBody ChallengeRegisterReq req
+    ) {
+        ChallengeRegisterRes res = service.registerChallenge(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                 req
         );

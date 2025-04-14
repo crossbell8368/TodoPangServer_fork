@@ -149,4 +149,39 @@ public class ChallengeService {
         }
         return data;
     }
+
+    /*===========================
+       도전과제 등록
+    ===========================*/
+    public ChallengeRegisterRes registerChallenge(String userId, ChallengeRegisterReq req) {
+        // 1. 요청객체 검증
+
+        // 2. Project 객체 업데이트
+
+        // 3. ChallengeStat 객체 업데이트
+
+        // 4. UserLog 객체 업데이트
+        return new ChallengeRegisterRes();
+    }
+
+    private boolean isRequestValid(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
+        List<String> errors = new ArrayList<>();
+
+        if(req.getChallengeId() == null) {
+            errors.add("[Failed] ChallengeId must not be null");
+        }
+        if(req.getTodoIds() == null || req.getTodoIds().isEmpty()) {
+            errors.add("[Failed] TodoId list must not be null or empty");
+        }
+
+        if (!errors.isEmpty()) {
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            res.addMessage(String.join("\n", errors));
+            logger.error("[ChallengeService][{}] Invalid argument detected, at register todos: {}", userId, res.getMessage());
+            return false;
+        }
+        res.addMessage("[Success] Valid todo register request");
+        logger.info("[ChallengeService][{}] Valid todo register request", userId);
+        return true;
+    }
 }

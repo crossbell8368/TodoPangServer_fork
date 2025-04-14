@@ -6,6 +6,7 @@ import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.main.auth.*;
 import com.devcrew1os.entity.admin.auth.AdminWithdrawInfo;
 import com.devcrew1os.entity.admin.auth.AdminWithdrawStat;
+import com.devcrew1os.entity.main.project.ProjectInfo;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
@@ -23,12 +24,8 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private final UserInfoRepository userRepo;
-    private final SignupTransaction signupTrans;
-    private final LoginTransaction loginTrans;
-    private final WithdrawTransaction withdrawTrans;
-
-    private final WithdrawAsync withdrawAsync;
+    private final AuthTransaction authTrans;
+    private final AuthAsync authAsync;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
@@ -45,12 +42,8 @@ public class AuthService {
         // 2. Id값 검증
         if(!isUserIdExist(userId, res)) return res;
 
-        // 3. 데이터 생성
-        UserInfo newUser = createUser(userId, req, now);
-        UserStat newUserStat = createStat(userId, now);
-
-        // 4. DB 적용
-        signupTrans.saveUserData(newUser, newUserStat, res);
+        // 3. 신규 사용자 데이터 생성
+        if(!setNewUserData(userId, now, req, res)) return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Signup finish");
@@ -82,7 +75,7 @@ public class AuthService {
     }
 
     private boolean isUserIdExist(String userId, SignupRes res) {
-        if (userRepo.existsUserInfoByUserId(userId)) {
+        if (!authTrans.checkUserExist(userId)) {
             res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request UserID already exists");
             logger.warn("[AuthService][{}] Request UserID already exists, at Signup", userId);
@@ -91,6 +84,25 @@ public class AuthService {
         res.addMessage("[Success] Valid UserId");
         logger.info("[AuthService][{}] Valid UserId, at Signup", userId);
         return true;
+    }
+
+    private boolean setNewUserData(String userId, LocalDateTime now, SignupReq req, SignupRes res) {
+        UserInfo newUser = createUser(userId, req, now);
+        UserStat newUserStat = createStat(userId, now);
+        ProjectInfo newProject = createProject(userId, now);
+
+        try {
+            authTrans.saveUserData(newUser, newUserStat, newProject);
+            res.addMessage("[Success] New user added");
+            logger.info("[AuthService][{}] Successfully added new user", userId);
+            return true;
+
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
+            res.addMessage("[Failed] Unable to save new user data");
+            logger.warn("[AuthService][{}] Unable to save new user data: {}", userId, err.getMessage());
+            return false;
+        }
     }
 
     private UserInfo createUser(String userId, SignupReq req, LocalDateTime now) {
@@ -118,6 +130,14 @@ public class AuthService {
                 .build();
     }
 
+    private ProjectInfo createProject(String userId, LocalDateTime now) {
+        return ProjectInfo.builder()
+                .userId(userId)
+                .challengesList(new ArrayList<>())
+                .todoList(new ArrayList<>())
+                .build();
+    }
+
     /*===========================
        사용자 로그인
     ===========================*/
@@ -139,7 +159,7 @@ public class AuthService {
 
     private UserStat getStatIfExists(String userId, LoginRes res) {
         try {
-            UserStat userStat = loginTrans.getStatByUserId(userId);
+            UserStat userStat = authTrans.getStatByUserId(userId);
             res.addMessage("[Success] User(Stat) fetched");
             logger.info("[AuthService][{}] User(Stat) fetched, at Login", userId);
             return userStat;
@@ -160,7 +180,7 @@ public class AuthService {
                 logger.info("[AuthService][{}] Stat data already up-to-date for user", userId);
                 return true;
             }
-            loginTrans.updateStatData(userStat, now);
+            authTrans.updateStatData(userStat, now);
             res.addMessage("[Success] Successfully updated stat data");
             logger.info("[AuthService][{}] Updated stat data for user", userId);
             return true;
@@ -221,7 +241,7 @@ public class AuthService {
 
         UserInfo user;
         try {
-            user = withdrawTrans.getUsersByUserId(userId);
+            user = authTrans.getUsersByUserId(userId);
             user.setStatus(UserStatus.DELETED.getValue());
             user.setDeletedAt(now);
         } catch (Exception err) {
@@ -233,7 +253,7 @@ public class AuthService {
 
         AdminWithdrawInfo reason;
         try {
-            reason = withdrawTrans.getWithdrawInfoById(req.getReason());
+            reason = authTrans.getWithdrawInfoById(req.getReason());
             reason.setCount(reason.getCount() + 1);
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.USER_NOT_FOUND);
@@ -258,8 +278,8 @@ public class AuthService {
         StringBuilder databaseMsg = new StringBuilder();
 
         try {
-            CompletableFuture<Boolean> firebaseFuture = withdrawAsync.isUserDeletedFromFirebase(userId, firebaseMsg);
-            CompletableFuture<Boolean> databaseFuture = withdrawAsync.isUserDeletedFromDatabase(dto, databaseMsg);
+            CompletableFuture<Boolean> firebaseFuture = authAsync.isUserDeletedFromFirebase(userId, firebaseMsg);
+            CompletableFuture<Boolean> databaseFuture = authAsync.isUserDeletedFromDatabase(dto, databaseMsg);
             CompletableFuture.allOf(firebaseFuture, databaseFuture).join();
 
             Boolean firebaseResult = firebaseFuture.get();
