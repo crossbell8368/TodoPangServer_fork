@@ -2,15 +2,16 @@ package com.devcrew1os.service.admin.category;
 
 import com.devcrew1os.common.enums.CategoryStatus;
 import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.common.enums.Location;
 import com.devcrew1os.dto.admin.category.*;
-import com.devcrew1os.entity.admin.challenge.AdminCategory;
-import com.devcrew1os.repository.admin.AdminCategoryRepository;
-import com.devcrew1os.repository.admin.AdminUserRepository;
+import com.devcrew1os.entity.admin.challenge.AdminCategoryInfo;
+import com.devcrew1os.repository.admin.AdminCategoryInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +20,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AdminCategoryService {
-
-    private final AdminCategoryRepository categoryRepo;
 
     private final AdminCategoryTransaction categoryTrans;
 
@@ -32,7 +31,7 @@ public class AdminCategoryService {
     public GetAdminCategoryRes getAdminCategories(String adminId) {
         GetAdminCategoryRes res = new GetAdminCategoryRes(false, "[Info] Get admin categories initiated", ErrorCode.OK);
 
-        GetAdminCategoryData[] data = getCategoryData(adminId, res);
+        List<GetAdminCategoryData> data = getCategoryData(adminId, res);
         if (data == null) return res;
 
         res.setData(data);
@@ -42,19 +41,11 @@ public class AdminCategoryService {
         return res;
     }
 
-    private GetAdminCategoryData[] getCategoryData(String adminId, GetAdminCategoryRes res) {
+    private List<GetAdminCategoryData> getCategoryData(String adminId, GetAdminCategoryRes res) {
         try {
-            List<AdminCategory> adminCategories = categoryRepo.findAllByOrderByIdDesc();
-            GetAdminCategoryData[] data =new GetAdminCategoryData[adminCategories.size()];
-            for (int i = 0; i < adminCategories.size(); i++) {
-                data[i] = new GetAdminCategoryData(
-                        adminCategories.get(i).getId(),
-                        adminCategories.get(i).getStatus(),
-                        adminCategories.get(i).getTitle()
-                );
-            }
-            logger.info("[AdminCategory][{}] Successfully retrieved {} categories", adminId, data.length);
-            return data;
+            List<GetAdminCategoryData> adminCategories = categoryTrans.getAdminCategoryData();
+            logger.info("[AdminCategory][{}] Successfully retrieved {} categories", adminId, adminCategories.size());
+            return adminCategories;
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Internal Database Error");
@@ -103,30 +94,35 @@ public class AdminCategoryService {
     }
 
     private boolean setAdminCategory(String adminId, SetAdminCategoryReq req, SetAdminCategoryRes res) {
-
-        List<AdminCategory> data = new ArrayList<>();
-        for(String category : req.getNewCategories()) {
-            data.add(createCategory(category));
-        }
-        logger.info("[AdminCategory][{}] Successfully retrieved {} categories at request", adminId, data.size());
+        LocalDateTime now = LocalDateTime.now();
+        List<AdminCategoryInfo> data = new ArrayList<>();
+        String adminName;
 
         try {
+            adminName = categoryTrans.getAdminData(adminId).getUserName();
+            for(String categoryName : req.getNewCategories()) {
+                data.add(createCategory(categoryName, adminName, now));
+            }
+            logger.info("[AdminCategory][{}] Successfully prepared {} categories at request", adminId, data.size());
             categoryTrans.saveCategories(data);
+
         } catch (Exception err){
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Failed to save new category data.");
-            logger.error("[AdminCategory][{}] Set category transaction failed, rolling back: {}", adminId, err.getMessage());
+            logger.error("[AdminCategory][{}] Set category transaction failed: {}", adminId, err.getMessage());
             return false;
         }
-        res.addMessage("[Success] Successfully saved " + data.size() + " categories");
-        logger.info("[AdminCategory][{}] Successfully saved {} categories", adminId, data.size());
+        res.addMessage("[Success] Successfully set " + data.size() + " categories");
+        logger.info("[AdminCategory][{}] Successfully set {} categories", adminId, data.size());
         return true;
     }
 
-    private AdminCategory createCategory(String title){
-        return AdminCategory.builder()
+    private AdminCategoryInfo createCategory(String title, String adminName, LocalDateTime updatedAt){
+        return AdminCategoryInfo.builder()
                 .status(1)
                 .title(title)
+                .lastUpdatedAt(updatedAt)
+                .lastUpdatedBy(adminName)
                 .build();
     }
 
@@ -138,7 +134,7 @@ public class AdminCategoryService {
 
         if(!isRequestValid(adminId, req, res)) return res;
 
-        List<AdminCategory> data = fetchCategory(adminId, req, res);
+        List<AdminCategoryInfo> data = fetchCategory(adminId, req, res);
         if(data == null || data.isEmpty()) return res;
 
         if(!updateCategory(data, adminId, req, res)) return res;
@@ -166,7 +162,7 @@ public class AdminCategoryService {
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage(String.join("\n", errors));
-            logger.error("[AdminCategory][{}] Invalid argument detected, at updated categories: {}", adminId, res.getMessage());
+            logger.error("[AdminCategory][{}] Invalid argument detected, at update categories: {}", adminId, res.getMessage());
             return false;
         }
         res.addMessage("[Success] Update category request is valid");
@@ -174,15 +170,13 @@ public class AdminCategoryService {
         return true;
     }
 
-    private List<AdminCategory> fetchCategory(String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
-        List<Integer> categoryIdList = req.getUpdatedCategories().stream()
-                .map(UpdateAdminCategoryData::getCategoryId)
-                .collect(Collectors.toList());
+    private List<AdminCategoryInfo> fetchCategory(String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
         try {
-            List<AdminCategory> category = categoryTrans.getCategoryByIdList(categoryIdList);
+            List<AdminCategoryInfo> category = categoryTrans.getCategoryByIdList(req.getUpdatedCategories());
             res.addMessage("[Success] Fetched " + category.size() + " categories data");
             logger.info("[AdminCategory][{}] Fetched {} categories data", adminId, category.size());
             return category;
+
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
             res.addMessage("[Failed] " + err.getMessage());
@@ -191,12 +185,9 @@ public class AdminCategoryService {
         }
     }
 
-    private boolean updateCategory(List<AdminCategory> category, String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
-
-        Map<Integer, UpdateAdminCategoryData> updatedData = req.getUpdatedCategories().stream()
-                .collect(Collectors.toMap(UpdateAdminCategoryData::getCategoryId, data -> data));
+    private boolean updateCategory(List<AdminCategoryInfo> category, String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
         try {
-            categoryTrans.updateCategory(category, updatedData);
+            categoryTrans.updateCategory(category, req);
             res.addMessage("[Success] " + category.size() + " Category data updated");
             logger.info("[AdminCategory][{}] {} Categories data updated", adminId, category.size());
             return true;

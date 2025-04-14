@@ -1,8 +1,12 @@
 package com.devcrew1os.service.admin.category;
 
+import com.devcrew1os.dto.admin.category.GetAdminCategoryData;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryData;
-import com.devcrew1os.entity.admin.challenge.AdminCategory;
-import com.devcrew1os.repository.admin.AdminCategoryRepository;
+import com.devcrew1os.dto.admin.category.UpdateAdminCategoryReq;
+import com.devcrew1os.entity.admin.AdminUser;
+import com.devcrew1os.entity.admin.challenge.AdminCategoryInfo;
+import com.devcrew1os.repository.admin.AdminCategoryInfoRepository;
+import com.devcrew1os.repository.admin.AdminUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,14 +19,63 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminCategoryTransaction {
 
-    private final AdminCategoryRepository categoryRepo;
+    private final AdminUserRepository adminUserRepo;
+    private final AdminCategoryInfoRepository categoryInfoRepo;
 
-    public List<AdminCategory> getCategoryByIdList(List<Integer> idList) {
-        List<AdminCategory> categories = categoryRepo.findAllById(idList);
+    /*===========================
+       카테고리 목록
+    ===========================*/
+    public List<GetAdminCategoryData> getAdminCategoryData() {
+        return getCategoryInfoList().stream()
+                .map(info -> new GetAdminCategoryData(
+                        info.getId(),
+                        info.getStatus(),
+                        info.getTitle(),
+                        info.getStat().getInvolvedCount(),
+                        info.getLastUpdatedBy(),
+                        info.getLastUpdatedAt()
+                )).collect(Collectors.toList());
+    }
 
+    public List<AdminCategoryInfo> getCategoryInfoList() {
+        List<AdminCategoryInfo> categoryList = categoryInfoRepo.findAllByOrderById();
+        if(categoryList.isEmpty()) {
+            throw new RuntimeException("Category info list is empty");
+        } else {
+            return categoryList;
+        }
+    }
+
+    /*===========================
+       카테고리 추가
+    ===========================*/
+    public AdminUser getAdminData(String adminId) {
+        return adminUserRepo.findByUserId(adminId).orElseThrow(
+                () -> new RuntimeException("Admin not found")
+        );
+    }
+
+    @Transactional
+    public void saveCategories(List<AdminCategoryInfo> categories) {
+        categoryInfoRepo.saveAll(categories);
+    }
+
+    /*===========================
+       카테고리 변경
+    ===========================*/
+    public List<AdminCategoryInfo> getCategoryByIdList(List<UpdateAdminCategoryData> data) {
+        // extract IdList
+        List<Integer> idList = data.stream()
+                .map(UpdateAdminCategoryData::getCategoryId)
+                .collect(Collectors.toList());
+
+        // search data
+        List<AdminCategoryInfo> categories = categoryInfoRepo.findAllById(idList);
+
+        // exception handling
         if (categories.size() != idList.size()) {
             List<Integer> foundIds = categories.stream()
-                    .map(AdminCategory::getId)
+                    .map(AdminCategoryInfo::getId)
                     .collect(Collectors.toList());
 
             List<Integer> missingIds = idList.stream()
@@ -35,13 +88,14 @@ public class AdminCategoryTransaction {
     }
 
     @Transactional
-    public void saveCategories(List<AdminCategory> categories) {
-        categoryRepo.saveAll(categories);
-    }
+    public void updateCategory(List<AdminCategoryInfo> entities, UpdateAdminCategoryReq req) {
+        // prepare data
+        Map<Integer, UpdateAdminCategoryData> updated = req.getUpdatedCategories().stream()
+                .collect(Collectors.toMap(
+                        UpdateAdminCategoryData::getCategoryId, data -> data));
 
-    @Transactional
-    public void updateCategory(List<AdminCategory> entities, Map<Integer, UpdateAdminCategoryData> updated) {
-        for(AdminCategory entity : entities) {
+        // process update
+        for(AdminCategoryInfo entity : entities) {
             UpdateAdminCategoryData updatedData = updated.get(entity.getId());
 
             if (updatedData == null) {

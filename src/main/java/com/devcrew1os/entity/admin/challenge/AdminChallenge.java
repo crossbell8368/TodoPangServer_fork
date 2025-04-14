@@ -22,7 +22,7 @@ public class AdminChallenge {
 
     @ManyToOne()
     @JoinColumn(name = "challenge_category_info_id", referencedColumnName = "challenge_category_info_id")
-    private AdminCategory category;
+    private AdminCategoryInfo category;
 
     @Column(name = "challenge_title", nullable = false)
     private String title;
