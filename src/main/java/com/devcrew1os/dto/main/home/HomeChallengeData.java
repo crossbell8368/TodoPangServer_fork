@@ -6,6 +6,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class HomeChallengeData {
+    private int challengeId;
     private String title;
     private int category;
     private int diff;

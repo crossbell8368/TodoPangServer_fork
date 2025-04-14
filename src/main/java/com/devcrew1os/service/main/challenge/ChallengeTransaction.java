@@ -46,9 +46,11 @@ public class ChallengeTransaction {
 
     public ChallengeDetailData getChallengeDetailData(int challengeId) {
         ChallengeInfo info = getChallengeInfo(challengeId);
+
         List<ChallengeTodoData> todos = getChallengeTodoList(challengeId).stream()
                 .map(todo -> new ChallengeTodoData(todo.getId(), todo.getDesc()))
                 .collect(Collectors.toList());
+
         List<ChallengeReviewData> reviews = getChallengeReview(challengeId).stream()
                 .map(review -> new ChallengeReviewData(
                         review.getId(),
@@ -57,6 +59,8 @@ public class ChallengeTransaction {
                 .collect(Collectors.toList());
         return new ChallengeDetailData(
                 challengeId,
+                info.getTitle(),
+                info.getStat().getPopularity(),
                 info.getCategory().getId(),
                 info.getTerm(),
                 info.getDiff(),

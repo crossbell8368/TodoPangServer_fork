@@ -13,6 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class ChallengeDetailData {
     private int challengeId;
+    private String title;
+    private int popularity;
     private int category;
     private int term;
     private int diff;

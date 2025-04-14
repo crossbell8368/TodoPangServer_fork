@@ -109,6 +109,7 @@ public class HomeService {
             for(ChallengeStat stat : statList) {
                 dataList.add(
                         HomeChallengeData.builder()
+                                .challengeId(stat.getId())
                                 .title(stat.getChallengeInfo().getTitle())
                                 .category(stat.getChallengeInfo().getCategory().getId())
                                 .diff(stat.getChallengeInfo().getDiff())
