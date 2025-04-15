@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "project_info")
@@ -24,10 +22,4 @@ public class ProjectInfo {
 
     @Column(name = "user_id")
     private String userId;
-
-    @OneToMany(mappedBy = "project")
-    private List<ProjectChallenges> challengesList = new ArrayList<>();
-
-    @OneToMany(mappedBy = "project")
-    private List<ProjectTodos> todoList = new ArrayList<>();
 }

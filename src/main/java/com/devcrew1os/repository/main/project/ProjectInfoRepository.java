@@ -1,4 +1,4 @@
-package com.devcrew1os.repository.main;
+package com.devcrew1os.repository.main.project;
 
 import com.devcrew1os.entity.main.project.ProjectInfo;
 import org.springframework.data.jpa.repository.JpaRepository;

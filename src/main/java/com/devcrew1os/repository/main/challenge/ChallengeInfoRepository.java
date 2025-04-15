@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ChallengeInfoRepository extends JpaRepository<ChallengeInfo, Integer> {
     List<ChallengeInfo> findAllByOrderByIdDesc();
+    boolean existsChallengeInfoById(Integer id);
 }

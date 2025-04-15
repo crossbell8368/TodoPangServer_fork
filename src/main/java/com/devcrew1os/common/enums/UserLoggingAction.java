@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 @Getter
 @RequiredArgsConstructor
-public enum UserChallengeAction {
+public enum UserLoggingAction {
 
     ADD_CHALLENGE(1),
     REMOVE_CHALLENGE(2),
@@ -21,14 +21,14 @@ public enum UserChallengeAction {
 
     private final int value;
 
-    private static final Map<Integer, UserChallengeAction> VALUE_MAP =
-            Stream.of(UserChallengeAction.values()).collect(Collectors.toMap(type -> type.value, type -> type));
+    private static final Map<Integer, UserLoggingAction> VALUE_MAP =
+            Stream.of(UserLoggingAction.values()).collect(Collectors.toMap(type -> type.value, type -> type));
 
-    public static UserChallengeAction fromValue(int value) {
-        UserChallengeAction userChallengeAction = VALUE_MAP.get(value);
-        if (userChallengeAction == null) {
+    public static UserLoggingAction fromValue(int value) {
+        UserLoggingAction userLoggingAction = VALUE_MAP.get(value);
+        if (userLoggingAction == null) {
             throw new IllegalArgumentException("Invalid user challenge action value: " + value);
         }
-        return userChallengeAction;
+        return userLoggingAction;
     }
 }

@@ -1,15 +1,13 @@
 package com.devcrew1os.entity.main.challenge;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "challenge_info")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

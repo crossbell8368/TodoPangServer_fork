@@ -7,13 +7,11 @@ import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.repository.admin.AdminWithdrawInfoRepository;
 import com.devcrew1os.repository.admin.AdminWithdrawStatRepository;
-import com.devcrew1os.repository.main.ProjectInfoRepository;
+import com.devcrew1os.repository.main.project.ProjectInfoRepository;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
 import com.devcrew1os.repository.main.users.UserStatRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -38,22 +36,11 @@ public class AuthTransaction {
     @Transactional
     public void saveUserData(UserInfo newUser, UserStat newUserStat, ProjectInfo newProject) {
         try {
-            executeTransaction(() -> userInfoRepo.save(newUser));
-            executeTransaction(() -> userStatRepo.save(newUserStat));
-            executeTransaction(() -> projectRepo.save(newProject));
-
+            userInfoRepo.save(newUser);
+            userStatRepo.save(newUserStat);
+            projectRepo.save(newProject);
         } catch (Exception err) {
             throw new RuntimeException("Transaction failed, initiate rolling back: " + err.getMessage(), err);
-        }
-    }
-
-    private void executeTransaction(Runnable jpaAction) {
-        try {
-            jpaAction.run();
-
-        } catch (DataAccessException err) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            throw err;
         }
     }
 
@@ -90,22 +77,12 @@ public class AuthTransaction {
 
     @Transactional
     public void updateWithdrawData(UserInfo user, AdminWithdrawInfo reason, AdminWithdrawStat archive) {
-        String userId = user.getUserId();
         try {
-            executor(() -> userInfoRepo.save(user));
-            executor(() -> withdrawInfoRepo.save(reason));
-            executor(() -> withdrawStatRepo.save(archive));
+            userInfoRepo.save(user);
+            withdrawInfoRepo.save(reason);
+            withdrawStatRepo.save(archive);
         } catch (Exception err) {
             throw new RuntimeException("Transaction failed, initiate rolling back: " + err.getMessage(), err);
-        }
-    }
-
-    private void executor(Runnable jpaAction) {
-        try {
-            jpaAction.run();
-        } catch (Exception err) {
-            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            throw err;
         }
     }
 }
