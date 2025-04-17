@@ -1,7 +1,6 @@
-package com.devcrew1os.service.admin.users;
+package com.devcrew1os.service.admin.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.admin.auth.AdminLoginRes;
 import com.devcrew1os.dto.admin.auth.AdminSignupReq;
@@ -56,14 +55,8 @@ public class AdminAuthService {
     private boolean isRequestValid(String adminId, AdminSignupReq req, AdminSignupRes res) {
         List<String> errors = new ArrayList<>();
 
-        if (req.getEmail() == null || req.getEmail().isEmpty()) {
-            errors.add("[Failed] Email must not be null or empty");
-        }
         if (req.getName() == null || req.getName().isEmpty()) {
             errors.add("[Failed] Name must not be null or empty");
-        }
-        if (req.getSocialType() == null || !UserSocialType.contains(req.getSocialType())) {
-            errors.add("[Failed] SocialType must not be null or must be specified value");
         }
         if (!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
@@ -77,7 +70,7 @@ public class AdminAuthService {
     }
 
     private boolean isAdminIdExist(String adminId, AdminSignupRes res){
-        if(adminRepo.existsAdminUserByUserId(adminId)){
+        if(adminRepo.existsAdminUserById(adminId)){
             res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request AdminID already exists");
             logger.warn("[AuthService][{}] Request AdminID already exists, at Signup", adminId);
@@ -89,16 +82,15 @@ public class AdminAuthService {
     }
 
     private AdminUser createAdmin(String adminId, AdminSignupReq req, LocalDateTime now) {
-        return AdminUser.builder()
-                .userId(adminId)
-                .userEmail(req.getEmail())
-                .userName(req.getName())
-                .socialType(req.getSocialType())
-                .status(UserStatus.ACTIVE.getValue())
-                .createdAt(now)
-                .updatedAt(now)
-                .deletedAt(null)
-                .build();
+        return new AdminUser(
+                adminId,
+                req.getName(),
+                UserStatus.ACTIVE.getValue(),
+                null,
+                now,
+                now,
+                null
+        );
     }
 
     /*===========================
@@ -109,6 +101,9 @@ public class AdminAuthService {
         return new AdminLoginRes(true, "[Info] Admin Login finish", ErrorCode.OK);
     }
 
+    /*===========================
+       관리자 회원탈퇴
+    ===========================*/
     public AdminWithdrawRes withdraw(String adminId) {
         AdminWithdrawRes res = new AdminWithdrawRes(false, "[Info] Admin Withdraw initiated", ErrorCode.OK);
         try {

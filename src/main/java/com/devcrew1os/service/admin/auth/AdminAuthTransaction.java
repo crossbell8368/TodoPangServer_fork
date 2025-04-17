@@ -1,4 +1,4 @@
-package com.devcrew1os.service.admin.users;
+package com.devcrew1os.service.admin.auth;
 
 import com.devcrew1os.entity.admin.AdminUser;
 import com.devcrew1os.repository.admin.AdminUserRepository;
@@ -17,19 +17,25 @@ public class AdminAuthTransaction {
     private final AdminUserRepository adminRepo;
     private static final Logger logger = LoggerFactory.getLogger(AdminAuthTransaction.class);
 
+    /*===========================
+       회원가입
+    ===========================*/
     @Transactional
     public void saveAdminData(AdminUser newAdmin) {
         try {
             adminRepo.save(newAdmin);
         } catch (DataAccessException err){
-            logger.info("[AdminAuthTrans][{}] Failed to save new admin data: {}", newAdmin.getUserId(), err.getMessage());
+            logger.info("[AdminAuthTrans][{}] Failed to save new admin data: {}", newAdmin.getId(), err.getMessage());
             throw err;
         }
     }
 
+    /*===========================
+       회원탈퇴
+    ===========================*/
     @Transactional
     public void deleteAdminData(String adminId){
-        AdminUser admin = adminRepo.findByUserId(adminId)
+        AdminUser admin = adminRepo.findById(adminId)
                 .orElseThrow(() -> {
                     logger.info("[AdminAuthTrans][{}] Admin not found", adminId);
                     return new RuntimeException("Admin not found");

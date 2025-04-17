@@ -66,7 +66,7 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
         // 3-2. Admin User
         if(isAdmin && !isAdminSignUp) {
-            if (!adminRepo.existsAdminUserByUserId(userId)) {
+            if (!adminRepo.existsAdminUserById(userId)) {
                 setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Failed]Invalid userId");
                 return;
             }

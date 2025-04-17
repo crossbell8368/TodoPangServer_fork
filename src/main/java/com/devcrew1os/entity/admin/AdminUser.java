@@ -12,28 +12,24 @@ import javax.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_info", schema = "admin")
+@Table(name = "admin_info", schema = "admin")
 @Getter
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AdminUser {
 
     @Id
     @Column(name = "user_id", nullable = false, unique = true)
-    private String userId;
-
-    @Column(name = "user_email", nullable = false, unique = true)
-    private String userEmail;
+    private String id;
 
     @Column(name = "user_name", nullable = false)
-    private String userName;
-
-    @Column(name = "user_social_type", nullable = false)
-    private int socialType;
+    private String name;
 
     @Column(name = "user_status", nullable = false)
     private int status;
+
+    @Column(name = "user_desc", columnDefinition = "TEXT")
+    private String desc;
 
     @Column(name = "user_created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -41,6 +37,6 @@ public class AdminUser {
     @Column(name = "user_updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "user_deleted_at")
+    @Column(name = "user_withdraw_at")
     private LocalDateTime deletedAt;
 }

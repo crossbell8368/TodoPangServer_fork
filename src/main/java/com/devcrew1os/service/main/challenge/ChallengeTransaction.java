@@ -16,7 +16,7 @@ import com.devcrew1os.repository.main.project.ProjectChallengeRepository;
 import com.devcrew1os.repository.main.project.ProjectInfoRepository;
 import com.devcrew1os.repository.main.challenge.*;
 import com.devcrew1os.repository.main.project.ProjectTodoRepository;
-import com.devcrew1os.repository.main.users.UserLogRepository;
+import com.devcrew1os.repository.log.UserActionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +38,7 @@ public class ChallengeTransaction {
     private final ProjectChallengeRepository projectChallengeRepo;
 
     private final ChallengeReviewStatRepository reviewStatRepo;
-    private final UserLogRepository userLogRepo;
+    private final UserActionRepository userLogRepo;
     /*===========================
        도전과제 목록조회
     ===========================*/

@@ -5,7 +5,7 @@ import com.devcrew1os.dto.admin.auth.AdminLoginRes;
 import com.devcrew1os.dto.admin.auth.AdminSignupReq;
 import com.devcrew1os.dto.admin.auth.AdminSignupRes;
 import com.devcrew1os.dto.admin.auth.AdminWithdrawRes;
-import com.devcrew1os.service.admin.users.AdminAuthService;
+import com.devcrew1os.service.admin.auth.AdminAuthService;
 import com.devcrew1os.service.util.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

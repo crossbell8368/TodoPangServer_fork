@@ -1,6 +1,7 @@
 package com.devcrew1os.service.main.auth;
 
-import com.devcrew1os.dto.main.auth.WithdrawDTO;
+import com.devcrew1os.entity.log.UserWithdrawLog;
+import com.devcrew1os.entity.main.user.UserInfo;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
@@ -29,10 +30,10 @@ public class AuthAsync {
     }
 
     @Async
-    public CompletableFuture<Boolean> isUserDeletedFromDatabase(WithdrawDTO dto, StringBuilder msg) {
+    public CompletableFuture<Boolean> isUserDeletedFromDatabase(UserInfo user, UserWithdrawLog reason, StringBuilder msg) {
         try {
             LocalDateTime now = LocalDateTime.now();
-            transaction.updateWithdrawData(dto.getUser(),dto.getStatus().getUserWithdrawInfo(), dto.getStatus());
+            transaction.updateWithdrawData(user, reason);
             msg.append("[Success] User deleted from database");
             return CompletableFuture.completedFuture(true);
         } catch (Exception err) {

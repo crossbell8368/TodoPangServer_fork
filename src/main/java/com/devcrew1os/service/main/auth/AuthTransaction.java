@@ -1,12 +1,10 @@
 package com.devcrew1os.service.main.auth;
 
-import com.devcrew1os.entity.admin.auth.AdminWithdrawInfo;
-import com.devcrew1os.entity.admin.auth.AdminWithdrawStat;
+import com.devcrew1os.entity.log.UserWithdrawLog;
 import com.devcrew1os.entity.main.project.ProjectInfo;
 import com.devcrew1os.entity.main.user.UserInfo;
 import com.devcrew1os.entity.main.user.UserStat;
-import com.devcrew1os.repository.admin.AdminWithdrawInfoRepository;
-import com.devcrew1os.repository.admin.AdminWithdrawStatRepository;
+import com.devcrew1os.repository.log.UserWithdrawRepository;
 import com.devcrew1os.repository.main.project.ProjectInfoRepository;
 import com.devcrew1os.repository.main.users.UserInfoRepository;
 import com.devcrew1os.repository.main.users.UserStatRepository;
@@ -23,8 +21,7 @@ public class AuthTransaction {
     private final UserInfoRepository userInfoRepo;
     private final UserStatRepository userStatRepo;
     private final ProjectInfoRepository projectRepo;
-    private final AdminWithdrawInfoRepository withdrawInfoRepo;
-    private final AdminWithdrawStatRepository withdrawStatRepo;
+    private final UserWithdrawRepository withdrawRepo;
 
     /*===========================
        Signup
@@ -40,7 +37,7 @@ public class AuthTransaction {
             userStatRepo.save(newUserStat);
             projectRepo.save(newProject);
         } catch (Exception err) {
-            throw new RuntimeException("Transaction failed, initiate rolling back: " + err.getMessage(), err);
+            throw new RuntimeException("Signup transaction failed, initiate rolling back: " + err.getMessage(), err);
         }
     }
 
@@ -57,7 +54,7 @@ public class AuthTransaction {
     public void updateStatData(UserStat userStat, LocalDateTime now) {
         userStat.setServiceTerm(userStat.getServiceTerm() + 1);
         userStat.setLastLoginAt(now);
-        userStatRepo.save(userStat);  // 명시적으로 저장 호출
+        userStatRepo.save(userStat);
     }
 
     /*===========================
@@ -69,20 +66,13 @@ public class AuthTransaction {
         );
     }
 
-    public AdminWithdrawInfo getWithdrawInfoById(Integer infoId) {
-        return withdrawInfoRepo.findById(infoId).orElseThrow(
-                () -> new RuntimeException("Withdraw(Info) not found: " + infoId)
-        );
-    }
-
     @Transactional
-    public void updateWithdrawData(UserInfo user, AdminWithdrawInfo reason, AdminWithdrawStat archive) {
+    public void updateWithdrawData(UserInfo user, UserWithdrawLog reason) {
         try {
             userInfoRepo.save(user);
-            withdrawInfoRepo.save(reason);
-            withdrawStatRepo.save(archive);
+            withdrawRepo.save(reason);
         } catch (Exception err) {
-            throw new RuntimeException("Transaction failed, initiate rolling back: " + err.getMessage(), err);
+            throw new RuntimeException("Withdraw transaction failed, initiate rolling back: " + err.getMessage(), err);
         }
     }
 }

@@ -4,12 +4,10 @@ import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.UserSocialType;
 import com.devcrew1os.common.enums.UserStatus;
 import com.devcrew1os.dto.main.auth.*;
-import com.devcrew1os.entity.admin.auth.AdminWithdrawInfo;
-import com.devcrew1os.entity.admin.auth.AdminWithdrawStat;
+import com.devcrew1os.entity.log.UserWithdrawLog;
 import com.devcrew1os.entity.main.project.ProjectInfo;
 import com.devcrew1os.entity.main.user.UserStat;
 import com.devcrew1os.entity.main.user.UserInfo;
-import com.devcrew1os.repository.main.users.UserInfoRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -205,11 +203,11 @@ public class AuthService {
         if(!isRequestValid(userId, req, res)) return res;
 
         // 2. 업데이트 데이터 준비
-        WithdrawDTO dto = getWithdrawData(userId, req, res);
-        if(dto == null) return res;
+        UserInfo data = getUpdateUserData(userId, res);
+        if(data == null) return res;
 
         // 3. Firebase & Database 업데이트
-        if(!isUserDeleted(userId, dto, res))return res;
+        if(!processUserWithdraw(data, req, res))return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Withdraw successful");
@@ -234,7 +232,7 @@ public class AuthService {
         return true;
     }
 
-    private WithdrawDTO getWithdrawData(String userId, WithdrawReq req, WithdrawRes res) {
+    private UserInfo getUpdateUserData(String userId, WithdrawRes res) {
         LocalDateTime now = LocalDateTime.now();
 
         UserInfo user;
@@ -248,36 +246,22 @@ public class AuthService {
             logger.error("[AuthService][{}] User not found at withdraw process: {}", userId, err.getMessage());
             return null;
         }
-
-        AdminWithdrawInfo reason;
-        try {
-            reason = authTrans.getWithdrawInfoById(req.getReason());
-            reason.setCount(reason.getCount() + 1);
-        } catch (Exception err) {
-            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-            res.addMessage("[Failed] Reason not found");
-            logger.error("[AuthService][{}] Reason found at withdraw process: {}", userId, err.getMessage());
-            return null;
-        }
-        AdminWithdrawStat status = AdminWithdrawStat.builder()
-                .userId(userId)
-                .userWithdrawInfo(reason)
-                .userWithdrawAt(now)
-                .build();
-        return WithdrawDTO.builder()
-                .user(user)
-                .status(status)
-                .build();
+        return user;
     }
 
-    private boolean isUserDeleted(String userId, WithdrawDTO dto, WithdrawRes res) {
+    private boolean processUserWithdraw(UserInfo user, WithdrawReq req, WithdrawRes res) {
         boolean status = false;
         StringBuilder firebaseMsg = new StringBuilder();
         StringBuilder databaseMsg = new StringBuilder();
+        UserWithdrawLog reason = UserWithdrawLog.builder()
+                .userId(user.getUserId())
+                .withdrawReason(req.getReason())
+                .withdrawAt(LocalDateTime.now())
+                .build();
 
         try {
-            CompletableFuture<Boolean> firebaseFuture = authAsync.isUserDeletedFromFirebase(userId, firebaseMsg);
-            CompletableFuture<Boolean> databaseFuture = authAsync.isUserDeletedFromDatabase(dto, databaseMsg);
+            CompletableFuture<Boolean> firebaseFuture = authAsync.isUserDeletedFromFirebase(user.getUserId(), firebaseMsg);
+            CompletableFuture<Boolean> databaseFuture = authAsync.isUserDeletedFromDatabase(user, reason, databaseMsg);
             CompletableFuture.allOf(firebaseFuture, databaseFuture).join();
 
             Boolean firebaseResult = firebaseFuture.get();
@@ -286,26 +270,26 @@ public class AuthService {
             if(!firebaseResult && !databaseResult) {
                 res.setErrorCode(ErrorCode.INTERNAL_ERROR);
                 res.addMessage("[Failed] Firebase & database error detected");
-                logger.error("[AuthService][{}] Failed to delete user from firebase & database: {} \n {}", userId, firebaseMsg.toString(), databaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from firebase & database: {} \n {}", user.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
             } else if (!firebaseResult) {
                 res.setErrorCode(ErrorCode.FIREBASE_ERROR);
                 res.addMessage("[Failed] Firebase error detected");
-                logger.error("[AuthService][{}] Failed to delete user from firebase: {}", userId, firebaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from firebase: {}", user.getUserId(), firebaseMsg.toString());
             } else if (!databaseResult) {
                 res.setErrorCode(ErrorCode.DATABASE_ERROR);
                 res.addMessage("[Failed] Database error detected");
-                logger.error("[AuthService][{}] Failed to delete user from database: {}", userId, databaseMsg.toString());
+                logger.error("[AuthService][{}] Failed to delete user from database: {}", user.getUserId(), databaseMsg.toString());
             } else {
                 status = true;
                 res.addMessage("[Info] User data deleted");
-                logger.info("[AuthService][{}] Withdraw user data deleted: \n {} \n {}", userId, firebaseMsg.toString(), databaseMsg.toString());
+                logger.info("[AuthService][{}] Withdraw user data deleted: \n {} \n {}", user.getUserId(), firebaseMsg.toString(), databaseMsg.toString());
             }
             return status;
 
         } catch (Exception err) {
             res.addMessage("[Failed] Delete process exception");
             res.setErrorCode(ErrorCode.INTERNAL_ERROR);
-            logger.error("[AuthService][{}] Withdraw delete process exception: {} \n {} \n {}", userId, err.getMessage(), firebaseMsg.toString(), databaseMsg.toString());
+            logger.error("[AuthService][{}] Withdraw delete process exception: {} \n {} \n {}", user.getUserId(), err.getMessage(), firebaseMsg.toString(), databaseMsg.toString());
             return false;
         }
     }

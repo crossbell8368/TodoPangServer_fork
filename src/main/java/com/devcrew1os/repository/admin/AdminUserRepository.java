@@ -8,6 +8,5 @@ import java.util.Optional;
 
 @Repository
 public interface AdminUserRepository extends JpaRepository<AdminUser, String> {
-    boolean existsAdminUserByUserId(String userId);
-    Optional<AdminUser> findByUserId(String userId);
+    boolean existsAdminUserById(String id);
 }
