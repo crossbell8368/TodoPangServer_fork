@@ -233,6 +233,7 @@ public class ChallengeService {
             List<ProjectTodo> projectTodoList = req.getTodoIds().stream()
                     .map(todoId -> ProjectTodo.builder()
                             .projectId(projectData.getId())
+                            .projectChallengeId(req.getChallengeId())
                             .projectTodoId(todoId)
                             .projectTodoStatus(ProjectTodoStatus.UNCHECK.getValue())
                             .build())

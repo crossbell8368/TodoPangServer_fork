@@ -75,7 +75,7 @@ public class AuthService {
     }
 
     private boolean isUserIdExist(String userId, SignupRes res) {
-        if (!authTrans.checkUserExist(userId)) {
+        if (authTrans.checkUserExist(userId)) {
             res.setErrorCode(ErrorCode.DUPLICATE_USER);
             res.addMessage("[Failed] Request UserID already exists");
             logger.warn("[AuthService][{}] Request UserID already exists, at Signup", userId);
@@ -133,8 +133,6 @@ public class AuthService {
     private ProjectInfo createProject(String userId, LocalDateTime now) {
         return ProjectInfo.builder()
                 .userId(userId)
-                .challengesList(new ArrayList<>())
-                .todoList(new ArrayList<>())
                 .build();
     }
 

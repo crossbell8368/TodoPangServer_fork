@@ -23,6 +23,9 @@ public class ProjectTodo {
     @Column(name = "project_id")
     private int projectId;
 
+    @Column(name = "challenge_info_id")
+    private int projectChallengeId;
+
     @Column(name = "challenge_todo_id")
     private int projectTodoId;
 

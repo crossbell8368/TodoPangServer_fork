@@ -1,0 +1,140 @@
+package com.devcrew1os.service.main.project;
+
+import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.dto.main.project.GetProjectChallenge;
+import com.devcrew1os.dto.main.project.GetProjectData;
+import com.devcrew1os.dto.main.project.GetProjectRes;
+import com.devcrew1os.dto.main.project.GetProjectTodo;
+import com.devcrew1os.entity.main.challenge.ChallengeTodo;
+import com.devcrew1os.entity.main.project.ProjectChallenge;
+import com.devcrew1os.entity.main.project.ProjectInfo;
+import com.devcrew1os.entity.main.project.ProjectTodo;
+import com.devcrew1os.entity.main.user.UserInfo;
+import com.devcrew1os.repository.main.challenge.ChallengeInfoProjection;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ProjectService {
+
+    private final ProjectTransaction transaction;
+
+    private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
+
+    /*===========================
+       목표조회
+    ===========================*/
+    public GetProjectRes getProject(String userId) {
+        GetProjectRes res = new GetProjectRes(false, "[Info] Get project initiated", ErrorCode.OK);
+
+        GetProjectData data = getProjectData(userId, res);
+        if(data == null) return res;
+        res.setData(data);
+
+        res.setSuccess(true);
+        res.addMessage("[Success] Fetch ProjectData complete");
+        logger.error("[ChallengeService][{}] Successfully fetch project related data", userId);
+        return res;
+    }
+
+    private GetProjectData getProjectData(String userId, GetProjectRes res) {
+        try {
+            // 1.prepare data
+            UserInfo userData = transaction.getUserInfo(userId);
+            ProjectInfo projectData = transaction.getProjectInfo(userId);
+            List<ProjectTodo> projectTodos = transaction.getProjectTodos(projectData.getId());
+            List<ProjectChallenge> projectChallenges = transaction.getProjectChallenges(projectData.getId());
+
+            // 2-1. fetch ProjectChallenge
+            List<Integer> challengeIds = projectChallenges.stream()
+                    .map(ProjectChallenge::getChallengeInfoId)
+                    .collect(Collectors.toList());
+            List<ChallengeInfoProjection> challengeInfoList = transaction.getChallengeList(challengeIds);
+
+            // 2-2. fetch ProjectTodo
+            List<Integer> todoIds = projectTodos.stream()
+                    .map(ProjectTodo::getProjectTodoId)
+                    .collect(Collectors.toList());
+            List<ChallengeTodo> challengeTodoList = transaction.getChallengeTodos(todoIds);
+
+            // 3. assemble data
+            List<GetProjectChallenge> dataList = assembleData(
+                    challengeIds,
+                    challengeInfoList,
+                    challengeTodoList,
+                    projectTodos
+            );
+
+            // 4. struct return dto
+            return new GetProjectData(
+                    userData.getUserName(),
+                    dataList.size(),
+                    dataList
+            );
+
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
+            res.addMessage("[Failed] Error detected, while fetch project related data");
+            logger.error("[ChallengeService][{}] Failed to fetch project related data: {}", userId, err.getMessage());
+            return null;
+        }
+    }
+
+    private List<GetProjectChallenge> assembleData(
+            List<Integer> challengeIds,
+            List<ChallengeInfoProjection> challengeInfoList,
+            List<ChallengeTodo> challengeTodoList,
+            List<ProjectTodo> projectTodos
+    ) {
+        // 3-1. Indexing challengeInfo
+        Map<Integer, ChallengeInfoProjection> challengeInfoMap = challengeInfoList.stream()
+                .collect(Collectors.toMap(ChallengeInfoProjection::getId, Function.identity()));
+
+        // 3-2. Indexing challengeTodo
+        Map<Integer, ChallengeTodo> challengeTodoMap = challengeTodoList.stream()
+                .collect(Collectors.toMap(ChallengeTodo::getId, Function.identity()));
+
+        // 3-3. Grouping ProjectTodo
+        Map<Integer, List<ProjectTodo>> projectTodoMap = projectTodos.stream()
+                .collect(Collectors.groupingBy(ProjectTodo::getProjectChallengeId));
+
+        // 3-4. struct return data: Challenge
+        List<GetProjectChallenge> challengeDtoList = new ArrayList<>();
+        for(Integer challengeId : challengeIds) {
+
+            ChallengeInfoProjection challengeInfo = challengeInfoMap.get(challengeId);
+
+            List<ProjectTodo> challengeInfoUnitTodo = projectTodoMap.getOrDefault(challengeId, Collections.emptyList());
+
+            List<GetProjectTodo> projectTodoList = new ArrayList<>();
+            for(ProjectTodo pt : challengeInfoUnitTodo){
+                ChallengeTodo todo = challengeTodoMap.get(pt.getProjectTodoId());
+                String title = (todo != null) ? todo.getDesc() : "Unknown Todo";
+                projectTodoList.add(
+                        new GetProjectTodo(
+                                challengeId,
+                                pt.getProjectTodoId(),
+                                title,
+                                pt.getProjectTodoStatus()
+                        )
+                );
+            }
+            challengeDtoList.add(new GetProjectChallenge(
+                    challengeId,
+                    challengeInfo != null ? challengeInfo.getTitle() : "Unknown Challenge",
+                    projectTodoList
+            ));
+        }
+        return challengeDtoList;
+    }
+}
