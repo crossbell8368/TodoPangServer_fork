@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminCategoryController {
 
     private final Response<?> response;
-    private final AdminCategoryService categoryService;
+    private final AdminCategoryService service;
 
     /*===========================
        카테고리 목록조회
     ===========================*/
     @PostMapping("/fetch")
     public ResponseEntity<?> getCategories(){
-        GetAdminCategoryRes res = categoryService.getAdminCategories(
+        GetAdminCategoryRes res = service.getAdminCategories(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         return response.handleResult(res);
@@ -34,7 +34,7 @@ public class AdminCategoryController {
     public ResponseEntity<?> addCategory(
             @RequestBody SetAdminCategoryReq req
     ){
-        SetAdminCategoryRes res = categoryService.setAdminCategories(
+        SetAdminCategoryRes res = service.setAdminCategories(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                 req
         );
@@ -45,7 +45,7 @@ public class AdminCategoryController {
     public ResponseEntity<?> updateCategory(
             @RequestBody UpdateAdminCategoryReq req
     ) {
-        UpdateAdminCategoryRes res = categoryService.updateAdminCategory(
+        UpdateAdminCategoryRes res = service.updateAdminCategory(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                 req
         );

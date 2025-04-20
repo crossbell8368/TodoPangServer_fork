@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminCategoryService {
 
-    private final AdminCategoryTransaction categoryTrans;
+    private final AdminCategoryTransaction transaction;
 
     private static final Logger logger = LoggerFactory.getLogger(AdminCategoryService.class);
 
@@ -40,7 +40,7 @@ public class AdminCategoryService {
 
     private List<GetAdminCategoryData> getCategoryData(String adminId, GetAdminCategoryRes res) {
         try {
-            List<GetAdminCategoryData> adminCategories = categoryTrans.getAdminCategoryList().stream()
+            List<GetAdminCategoryData> adminCategories = transaction.getAdminCategoryList().stream()
                     .map(category -> new GetAdminCategoryData(
                             category.getId(),
                             category.getStatus(),
@@ -54,7 +54,7 @@ public class AdminCategoryService {
             return adminCategories;
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Internal Database Error");
+            res.addMessage("[Failed] Error detected while retrieving categories");
             logger.info("[AdminCategory][{}] Failed to retrieved categories", adminId);
             return null;
         }
@@ -105,12 +105,12 @@ public class AdminCategoryService {
         String adminName;
 
         try {
-            adminName = categoryTrans.getAdminUser(adminId).getName();
+            adminName = transaction.getAdminUser(adminId).getName();
             for(String categoryName : req.getNewCategories()) {
                 data.add(createCategory(categoryName, adminName, now));
             }
             logger.info("[AdminCategory][{}] Successfully prepared {} categories at request", adminId, data.size());
-            categoryTrans.saveCategories(data);
+            transaction.saveCategories(data);
 
         } catch (Exception err){
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
@@ -179,7 +179,7 @@ public class AdminCategoryService {
 
     private List<AdminCategory> fetchCategory(String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
         try {
-            List<AdminCategory> category = categoryTrans.getCategoryByIdList(req.getUpdatedCategories());
+            List<AdminCategory> category = transaction.getCategoryByIdList(req.getUpdatedCategories());
             res.addMessage("[Success] Fetched " + category.size() + " categories data");
             logger.info("[AdminCategory][{}] Fetched {} categories data", adminId, category.size());
             return category;
@@ -194,7 +194,7 @@ public class AdminCategoryService {
 
     private boolean updateCategory(List<AdminCategory> category, String adminId, UpdateAdminCategoryReq req, UpdateAdminCategoryRes res) {
         try {
-            categoryTrans.updateCategory(adminId, category, req);
+            transaction.updateCategory(adminId, category, req);
             res.addMessage("[Success] " + category.size() + " Category data updated");
             logger.info("[AdminCategory][{}] {} Categories data updated", adminId, category.size());
             return true;
