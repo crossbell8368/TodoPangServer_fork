@@ -1,10 +1,7 @@
 package com.devcrew1os.service.main.project;
 
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.dto.main.project.GetProjectChallenge;
-import com.devcrew1os.dto.main.project.GetProjectData;
-import com.devcrew1os.dto.main.project.GetProjectRes;
-import com.devcrew1os.dto.main.project.GetProjectTodo;
+import com.devcrew1os.dto.main.project.*;
 import com.devcrew1os.entity.main.challenge.ChallengeTodo;
 import com.devcrew1os.entity.main.project.ProjectChallenge;
 import com.devcrew1os.entity.main.project.ProjectInfo;
@@ -43,7 +40,7 @@ public class ProjectService {
 
         res.setSuccess(true);
         res.addMessage("[Success] Fetch ProjectData complete");
-        logger.error("[ChallengeService][{}] Successfully fetch project related data", userId);
+        logger.error("[ProjectService][{}] Successfully fetch project related data", userId);
         return res;
     }
 
@@ -85,7 +82,7 @@ public class ProjectService {
         } catch(Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Error detected, while fetch project related data");
-            logger.error("[ChallengeService][{}] Failed to fetch project related data: {}", userId, err.getMessage());
+            logger.error("[ProjectService][{}] Failed to fetch project related data: {}", userId, err.getMessage());
             return null;
         }
     }
@@ -136,5 +133,41 @@ public class ProjectService {
             ));
         }
         return challengeDtoList;
+    }
+
+    /*===========================
+       목표 업데이트
+    ===========================*/
+    public UpdateProjectRes updateProjectRes(String userId, UpdateProjectReq req) {
+        UpdateProjectRes res = new UpdateProjectRes(false, "[Info] Update project initiated", ErrorCode.OK);
+
+        if(!isRequestValid(userId, req, res)) return res;
+
+        if(!transaction.updateProjectProcess(userId, req, res)) return res;
+
+        res.setSuccess(true);
+        res.addMessage("[Info] Successfully update project todo data");
+        logger.info("[ProjectService][{}] Successfully update project todo data", userId);
+        return res;
+    }
+
+    private boolean isRequestValid(String userId, UpdateProjectReq req, UpdateProjectRes res) {
+
+        if(req.getChallengeList() == null || req.getChallengeList().isEmpty()) {
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            res.addMessage("[Failed] ChallengeList must not be null or empty");
+            logger.error("[ProjectService][{}] Invalid argument detected, at update project: {}", userId, res.getMessage());
+            return false;
+        }
+
+        for(UpdateProjectChallenge challenge : req.getChallengeList()) {
+            if(challenge.getTodoList() == null || challenge.getTodoList().isEmpty()){
+                res.setErrorCode(ErrorCode.BAD_REQUEST);
+                res.addMessage("[Failed] ChallengeList must not be null or empty");
+                logger.error("[ProjectService][{}] Invalid argument detected, at update project: {}", userId, res.getMessage());
+                return false;
+            }
+        }
+        return true;
     }
 }

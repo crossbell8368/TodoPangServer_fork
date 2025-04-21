@@ -10,8 +10,8 @@ import com.devcrew1os.repository.main.users.UserInfoRepository;
 import com.devcrew1os.repository.main.users.UserStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 
 @Service

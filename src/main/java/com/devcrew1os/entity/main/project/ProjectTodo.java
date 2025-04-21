@@ -1,15 +1,13 @@
 package com.devcrew1os.entity.main.project;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "project_todo")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
