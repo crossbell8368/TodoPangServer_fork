@@ -1,5 +1,8 @@
 package com.devcrew1os.service.admin.category;
 
+import com.devcrew1os.common.enums.AdminStatus;
+import com.devcrew1os.dto.admin.category.GetAdminCategoryData;
+import com.devcrew1os.dto.admin.category.SetAdminCategoryReq;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryData;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryReq;
 import com.devcrew1os.entity.admin.AdminUser;
@@ -7,12 +10,13 @@ import com.devcrew1os.entity.admin.AdminCategory;
 import com.devcrew1os.repository.admin.AdminCategoryRepository;
 import com.devcrew1os.repository.admin.AdminUserRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import javax.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,40 +26,93 @@ public class AdminCategoryTransaction {
     private final AdminUserRepository adminUserRepo;
     private final AdminCategoryRepository categoryRepo;
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminCategoryTransaction.class);
+
     /*===========================
        카테고리 목록
     ===========================*/
-    public List<AdminCategory> getAdminCategoryList() {
-        List<AdminCategory> categoryList = categoryRepo.findAllByOrderById();
+    @Transactional(readOnly = true)
+    public List<GetAdminCategoryData> getCategoryProcess(String adminId) {
+        // 1. fetch data
+        List<AdminCategory> categoryList = categoryRepo.findAllByOrderByIdDesc();
         if(categoryList.isEmpty()) {
-            throw new RuntimeException("Category info list is empty");
-        } else {
-            return categoryList;
+            throw new RuntimeException("Category not exist");
         }
+        Map<String, String> adminMap = getAdminData(categoryList);
+
+        // 2. set data
+        List<GetAdminCategoryData> dataList = new ArrayList<>();
+        for(AdminCategory category : categoryList) {
+            dataList.add(
+                    new GetAdminCategoryData(
+                            category.getId(),
+                            category.getStatus(),
+                            category.getTitle(),
+                            category.getChallengesCount(),
+                            adminMap.get(category.getLastUpdatedBy()),
+                            category.getLastUpdatedAt()
+                    )
+            );
+        }
+        return dataList;
+    }
+
+    private Map<String, String> getAdminData(List<AdminCategory> categoryList){
+        List<String> adminIdList = categoryList.stream()
+                .map(AdminCategory::getLastUpdatedBy)
+                .distinct()
+                .collect(Collectors.toList());
+        List<AdminUser> adminList = adminUserRepo.findAllByIdIn(adminIdList);
+
+        if (adminList.size() != adminIdList.size()) {
+            Set<String> foundAdminIds = adminList.stream().map(AdminUser::getId).collect(Collectors.toSet());
+            List<String> missingAdminIds = adminIdList.stream().filter(id -> !foundAdminIds.contains(id)).collect(Collectors.toList());
+            logger.warn("[AdminCategory] Unidentified adminId detected: {}", missingAdminIds);
+        }
+        return adminList.stream()
+                .collect(Collectors.toMap(AdminUser::getId, AdminUser::getName));
     }
 
     /*===========================
        카테고리 추가
     ===========================*/
-    public AdminUser getAdminUser(String adminId){
-        return adminUserRepo.findById(adminId).orElseThrow(
-                () -> new RuntimeException("Admin user not found")
-        );
+    @Transactional
+    public void setCategoryProcess(String adminId, SetAdminCategoryReq req) {
+        LocalDateTime now = LocalDateTime.now();
+        List<AdminCategory> categoryData = new ArrayList<>();
+
+        for(String categoryName : req.getNewCategories()) {
+            categoryData.add(structCategoryEntity(categoryName, adminId, now));
+        }
+        categoryRepo.saveAll(categoryData);
     }
 
-    @Transactional
-    public void saveCategories(List<AdminCategory> categories) {
-        try {
-            categoryRepo.saveAll(categories);
-        } catch(Exception err) {
-            throw new RuntimeException("Set categories transaction failed, initiate rolling back: " + err.getMessage(), err);
-        }
+    private AdminCategory structCategoryEntity(String title, String adminId, LocalDateTime updatedAt){
+        return AdminCategory.builder()
+                .title(title)
+                .status(AdminStatus.PREPARE.getValue())
+                .challengesCount(0)
+                .lastUpdatedAt(updatedAt)
+                .lastUpdatedBy(adminId)
+                .build();
     }
 
     /*===========================
        카테고리 변경
     ===========================*/
-    public List<AdminCategory> getCategoryByIdList(List<UpdateAdminCategoryData> data) {
+    @Transactional
+    public void updateCategoryProcess(String adminId, UpdateAdminCategoryReq req) {
+
+        // 1. fetch target data
+        List<AdminCategory> categories = getCategoryByIdList(req.getUpdatedCategories());
+        logger.info("[AdminCategory][{}] Fetched {} categories data", adminId, categories.size());
+
+        // 2. update target data
+        updateCategory(adminId, categories, req);
+        logger.info("[AdminCategory][{}] {} Categories data updated", adminId, categories.size());
+    }
+
+    private List<AdminCategory> getCategoryByIdList(List<UpdateAdminCategoryData> data) {
         // extract IdList
         List<Integer> idList = data.stream()
                 .map(UpdateAdminCategoryData::getCategoryId)
@@ -79,11 +136,9 @@ public class AdminCategoryTransaction {
         return categories;
     }
 
-    @Transactional
-    public void updateCategory( String adminId, List<AdminCategory> entities, UpdateAdminCategoryReq req) {
+    private void updateCategory(String adminId, List<AdminCategory> entities, UpdateAdminCategoryReq req) {
         // prepare data
         LocalDateTime updatedAt = LocalDateTime.now();
-        String adminName = getAdminUser(adminId).getName();
         Map<Integer, UpdateAdminCategoryData> updated = req.getUpdatedCategories().stream()
                 .collect(Collectors.toMap(UpdateAdminCategoryData::getCategoryId, data -> data));
 
@@ -97,7 +152,7 @@ public class AdminCategoryTransaction {
             entity.setStatus(updatedData.getCategoryStatus());
             entity.setTitle(updatedData.getCategoryTitle());
             entity.setLastUpdatedAt(updatedAt);
-            entity.setLastUpdatedBy(adminName);
+            entity.setLastUpdatedBy(adminId);
         }
     }
 }
