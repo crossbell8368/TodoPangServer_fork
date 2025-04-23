@@ -1,19 +1,15 @@
 package com.devcrew1os.service.admin.challenge;
 
-import com.devcrew1os.common.enums.AdminStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.challenge.GetAdminChallengeData;
 import com.devcrew1os.dto.admin.challenge.GetAdminChallengeRes;
 import com.devcrew1os.dto.admin.challenge.SetAdminChallengeReq;
 import com.devcrew1os.dto.admin.challenge.SetAdminChallengeRes;
-import com.devcrew1os.entity.admin.AdminCategory;
-import com.devcrew1os.entity.admin.AdminChallenge;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -32,37 +28,25 @@ public class AdminChallengeService {
     public GetAdminChallengeRes getAdminChallenges(String adminId) {
         GetAdminChallengeRes res = new GetAdminChallengeRes(false, "[Info] Get admin challenges initiated", ErrorCode.OK);
 
-        List<GetAdminChallengeData> data = getChallengeData(adminId, res);
-        if(data == null) return res;
-
-        res.setData(data);
-        res.setSuccess(true);
-        res.addMessage("[Info] Successfully retrieved challenges");
-        logger.info("[AdminCategory][{}] Successfully retrieved challenges", adminId);
-        return res;
-    }
-
-    private List<GetAdminChallengeData> getChallengeData(String adminId, GetAdminChallengeRes res) {
         try {
-            List<GetAdminChallengeData> adminChallenges = transaction.getAdminChallengeList().stream()
-                    .map(challenge -> new GetAdminChallengeData(
-                            challenge.getId(),
-                            challenge.getCategory().getTitle(),
-                            challenge.getTerm(),
-                            challenge.getDiff(),
-                            challenge.getTodoCount(),
-                            challenge.getStatus(),
-                            challenge.getLastUpdatedAt(),
-                            challenge.getLastUpdatedBy()
-                    ))
-                    .collect(Collectors.toList());
-            logger.info("[AdminChallenge][{}] Successfully retrieved {} challenges", adminId, adminChallenges.size());
-            return adminChallenges;
-        } catch(Exception err) {
-            res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Error detected while retrieving admin challenges");
-            logger.info("[AdminChallenge][{}] Failed to retrieved challenges", adminId);
-            return null;
+            List<GetAdminChallengeData> dataList = transaction.getChallengeProcess();
+            res.setData(dataList);
+            res.setSuccess(true);
+            res.addMessage("[Info] Successfully retrieved challenges");
+            logger.info("[AdminCategory][{}] Successfully retrieved challenges", adminId);
+            return res;
+
+        } catch (RuntimeException err) {
+            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.addMessage("[Failed] Admin challenges not found");
+            logger.info("[AdminChallenge][{}] Failed to retrieved challenges: {}", adminId, err.getMessage());
+            return res;
+
+        } catch (Exception err) {
+            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.addMessage("[Failed] Failed to get challenge data.");
+            logger.info("[AdminChallenge][{}] Failed to retrieved admin challenges: {}", adminId, err.getMessage());
+            return res;
         }
     }
 
@@ -75,7 +59,7 @@ public class AdminChallengeService {
         if(!isRequestValid(adminId, req, res)) return res;
 
         try {
-            transaction.setAdminChallengeProcess(adminId, req);
+            transaction.setChallengeProcess(adminId, req);
 
             res.setSuccess(true);
             res.addMessage("[Info] Successfully add challenge");
