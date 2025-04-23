@@ -1,6 +1,6 @@
 package com.devcrew1os.service.admin.category;
 
-import com.devcrew1os.common.enums.CategoryStatus;
+import com.devcrew1os.common.enums.AdminStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.category.*;
 import com.devcrew1os.entity.admin.AdminCategory;
@@ -126,7 +126,7 @@ public class AdminCategoryService {
     private AdminCategory createCategory(String title, String adminName, LocalDateTime updatedAt){
         return AdminCategory.builder()
                 .title(title)
-                .status(CategoryStatus.PREPARE.getValue())
+                .status(AdminStatus.PREPARE.getValue())
                 .challengesCount(0)
                 .lastUpdatedAt(updatedAt)
                 .lastUpdatedBy(adminName)
@@ -159,7 +159,7 @@ public class AdminCategoryService {
             if (data.getCategoryId() == null) {
                 errors.add("[Failed] Updated categoryId must not be null");
             }
-            if (data.getCategoryStatus() == null || !CategoryStatus.isValidValue(data.getCategoryStatus())) {
+            if (data.getCategoryStatus() == null || !AdminStatus.isValidValue(data.getCategoryStatus())) {
                 errors.add("[Failed] Updated category(" + data.getCategoryId() + ") status must not be null or valid");
             }
             if (data.getCategoryTitle() == null || data.getCategoryTitle().isEmpty()) {

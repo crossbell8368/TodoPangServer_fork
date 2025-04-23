@@ -32,8 +32,8 @@ public class AdminTodo {
     private String desc;
 
     @Column(name = "todo_last_updated", nullable = false)
-    private LocalDateTime updatedAt;
+    private LocalDateTime lastUpdatedAt;
 
     @Column(name = "todo_last_updated_admin")
-    private LocalDateTime deletedAt;
+    private String lastUpdatedBy;
 }

@@ -1,9 +1,6 @@
 package com.devcrew1os.entity.admin;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -11,6 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "challenge_info", schema = "admin")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor

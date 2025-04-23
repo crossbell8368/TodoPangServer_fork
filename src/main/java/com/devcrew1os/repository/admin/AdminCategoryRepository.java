@@ -12,4 +12,6 @@ import java.util.Optional;
 public interface AdminCategoryRepository extends JpaRepository<AdminCategory, Integer> {
     List<AdminCategory> findAllByOrderById();
     List<AdminCategory> findAllByIdIn(List<Integer> ids);
+
+    Optional<AdminCategory> findById(int id);
 }
