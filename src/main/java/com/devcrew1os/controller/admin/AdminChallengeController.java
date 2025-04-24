@@ -1,9 +1,7 @@
 package com.devcrew1os.controller.admin;
 
 import com.devcrew1os.dto.Response;
-import com.devcrew1os.dto.admin.challenge.GetAdminChallengeRes;
-import com.devcrew1os.dto.admin.challenge.SetAdminChallengeReq;
-import com.devcrew1os.dto.admin.challenge.SetAdminChallengeRes;
+import com.devcrew1os.dto.admin.challenge.*;
 import com.devcrew1os.service.admin.challenge.AdminChallengeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -48,4 +46,13 @@ public class AdminChallengeController {
     /*===========================
        도전과제 업데이트
     ===========================*/
+    @PostMapping("/update")
+    public ResponseEntity<?> updateChallenge(
+            @RequestBody UpdateAdminChallengeReq req
+    ){
+        UpdateAdminChallengeRes res = service.updateAdminChallenges(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
+        );
+        return response.handleResult(res);
+    }
 }

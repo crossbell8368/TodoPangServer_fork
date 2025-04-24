@@ -4,9 +4,12 @@ import com.devcrew1os.entity.admin.AdminChallenge;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface AdminChallengeRepository extends JpaRepository<AdminChallenge, Integer> {
     List<AdminChallenge> findAllByOrderByIdDesc();
+    List<AdminChallenge> findAllByIdIn(Set<Integer> ids);
 }

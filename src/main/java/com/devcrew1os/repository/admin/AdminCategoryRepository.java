@@ -7,11 +7,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface AdminCategoryRepository extends JpaRepository<AdminCategory, Integer> {
     List<AdminCategory> findAllByOrderByIdDesc();
     List<AdminCategory> findAllByIdIn(List<Integer> ids);
+    List<AdminCategory> findAllByIdIn(Set<Integer> ids);
 
     Optional<AdminCategory> findById(int id);
 }
