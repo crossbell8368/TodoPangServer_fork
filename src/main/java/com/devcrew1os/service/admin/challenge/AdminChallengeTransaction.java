@@ -14,6 +14,9 @@ import lombok.RequiredArgsConstructor;
 import net.bytebuddy.asm.Advice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +41,10 @@ public class AdminChallengeTransaction {
        도전과제 목록
     ===========================*/
     @Transactional(readOnly = true)
-    public List<GetAdminChallengeData> getChallengeProcess() {
+    public Page<GetAdminChallengeData> getChallengeProcess(Pageable pageable) {
         // 1. fetch data
-        List<AdminChallenge> challengeList = challengeRepo.findAllByOrderByIdDesc();
+        Page<AdminChallenge> challengePage = challengeRepo.findAllBy(pageable);
+        List<AdminChallenge> challengeList = challengePage.getContent();
         if(challengeList.isEmpty()){
             throw new RuntimeException("Admin challenge list not exist");
         }
@@ -65,7 +69,7 @@ public class AdminChallengeTransaction {
                     )
             );
         }
-        return dataList;
+        return new PageImpl<>(dataList, pageable, challengePage.getTotalElements());
     }
 
     private Map<String, String> getAdminData(List<AdminChallenge> challengeList) {
@@ -189,7 +193,7 @@ public class AdminChallengeTransaction {
         Set<Integer> challengeIdSet = req.getUpdatedChallenges().stream()
                 .map(UpdateAdminChallengeData::getChallengeId)
                 .collect(Collectors.toSet());
-        List<AdminChallenge> challengeList = challengeRepo.findAllById(challengeIdSet);
+        List<AdminChallenge> challengeList = challengeRepo.findAllByIdIn(challengeIdSet);
 
         // 2. validate data
         if(challengeList.size() != challengeIdSet.size()){

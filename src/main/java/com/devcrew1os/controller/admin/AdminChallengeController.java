@@ -4,12 +4,12 @@ import com.devcrew1os.dto.Response;
 import com.devcrew1os.dto.admin.challenge.*;
 import com.devcrew1os.service.admin.challenge.AdminChallengeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,10 +22,13 @@ public class AdminChallengeController {
     /*===========================
        도전과제 목록조회
     ===========================*/
-    @PostMapping("/fetch")
-    public ResponseEntity<?> getChallenges() {
+    @GetMapping("/list")
+    public ResponseEntity<?> getChallenges(
+            @PageableDefault(page = 1, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
         GetAdminChallengeRes res = service.getAdminChallenges(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                pageable
         );
         return response.handleResult(res);
     }

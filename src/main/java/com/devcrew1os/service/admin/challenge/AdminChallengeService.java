@@ -1,15 +1,17 @@
 package com.devcrew1os.service.admin.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.dto.PageResponse;
 import com.devcrew1os.dto.admin.challenge.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,12 +24,15 @@ public class AdminChallengeService {
     /*===========================
        도전과제 목록조회
     ===========================*/
-    public GetAdminChallengeRes getAdminChallenges(String adminId) {
+    public GetAdminChallengeRes getAdminChallenges(String adminId, Pageable pageable) {
         GetAdminChallengeRes res = new GetAdminChallengeRes(false, "[Info] Get admin challenges initiated", ErrorCode.OK);
 
         try {
-            List<GetAdminChallengeData> dataList = transaction.getChallengeProcess();
-            res.setData(dataList);
+            Page<GetAdminChallengeData> dataPage = transaction.getChallengeProcess(pageable);
+
+            PageResponse<GetAdminChallengeData> pageResponse = new PageResponse<>(dataPage);
+
+            res.setData(pageResponse);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully retrieved challenges");
             logger.info("[AdminCategory][{}] Successfully retrieved challenges", adminId);
