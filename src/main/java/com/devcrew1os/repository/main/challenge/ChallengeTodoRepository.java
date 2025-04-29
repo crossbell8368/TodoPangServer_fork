@@ -7,13 +7,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface ChallengeTodoRepository extends JpaRepository<ChallengeTodo, Integer> {
     List<ChallengeTodo> findAllByChallengeInfoId(int challengeInfoId);
-    List<ChallengeTodo> findAllByChallengeInfoIdAndIdIn(@Param("challengeId") int challengeId, @Param("todoIds") List<Integer> todoIds);
-
-    List<ChallengeTodo> findAllByIdIn(List<Integer> ids);
+    List<ChallengeTodo> findAllByIdIn(Set<Integer> ids);
 
     @Query("SELECT t.id FROM ChallengeTodo t WHERE t.challengeInfoId = :challengeId AND t.id IN :todoIds")
     List<Integer> findIdsByChallengeInfoIdAndIdIn(@Param("challengeId") int challengeId, @Param("todoIds") List<Integer> todoIds);

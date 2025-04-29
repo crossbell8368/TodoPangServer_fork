@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface ChallengeInfoRepository extends JpaRepository<ChallengeInfo, Integer> {
@@ -15,5 +16,5 @@ public interface ChallengeInfoRepository extends JpaRepository<ChallengeInfo, In
     boolean existsChallengeInfoById(Integer id);
 
     @Query("SELECT c.id AS id, c.title AS title FROM ChallengeInfo c WHERE c.id IN :ids")
-    List<ChallengeInfoProjection> findAllByIdIn(@Param("ids") List<Integer> ids);
+    List<ChallengeInfoProjection> findAllByIdIn(@Param("ids") Set<Integer> ids);
 }

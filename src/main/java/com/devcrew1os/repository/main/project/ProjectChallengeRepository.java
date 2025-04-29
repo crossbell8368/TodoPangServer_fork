@@ -14,7 +14,5 @@ import java.util.Set;
 @Repository
 public interface ProjectChallengeRepository extends JpaRepository<ProjectChallenge, Integer> {
     List<ProjectChallenge> findAllByProjectId(Integer projectId);
-
-    @Query("SELECT pc.challengeInfoId FROM ProjectChallenge pc WHERE pc.projectId = :projectId AND pc.challengeInfoId IN :challengeInfoIds")
-    Set<Integer> findIdsByProjectIdAndChallengeInfoIdIn(@Param("projectId") Integer projectId, @Param("challengeInfoIds") List<Integer> challengeInfoIds);
+    List<ProjectChallenge> findAllByIdIn(Set<Integer> projectIds);
 }

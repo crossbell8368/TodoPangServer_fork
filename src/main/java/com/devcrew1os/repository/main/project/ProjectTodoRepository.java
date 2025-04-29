@@ -15,8 +15,5 @@ import java.util.Set;
 @Repository
 public interface ProjectTodoRepository extends JpaRepository<ProjectTodo, Integer> {
     List<ProjectTodo> findAllByProjectId(int projectId);
-    List<ProjectTodo> findByProjectIdAndProjectTodoIdIn(int projectId, List<Integer> projectTodoIds);
-
-    @Query("SELECT pt.projectTodoId FROM ProjectTodo pt WHERE pt.projectId = :projectId AND pt.projectTodoId IN :projectTodoIds")
-    Set<Integer> findIdsByProjectIdAndProjectTodoIdIn(@Param("projectId") Integer projectId, @Param("projectTodoIds") List<Integer> projectTodoIds);
+    List<ProjectTodo> findAllByProjectIdAndIdIn(Integer projectId, Set<Integer> ids);
 }

@@ -1,15 +1,13 @@
 package com.devcrew1os.entity.main.project;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "project_challenge")
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -25,4 +23,7 @@ public class ProjectChallenge {
 
     @Column(name = "challenge_info_id")
     private int challengeInfoId;
+
+    @Column(name = "project_challenge_status")
+    private int challengeStatus;
 }

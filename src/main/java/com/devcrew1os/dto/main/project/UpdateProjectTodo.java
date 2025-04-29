@@ -10,7 +10,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateProjectTodo {
-    private int todoId;
-    private int challengeId;
-    private int updatedStatus;
+    private Integer todoId;
+    private Integer challengeId;
+    private Integer updatedStatus;
 }

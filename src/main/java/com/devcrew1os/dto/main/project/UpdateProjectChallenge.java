@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Getter
@@ -12,6 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateProjectChallenge {
-    private int challengeId;
-    private List<UpdateProjectTodo> todoList;
+    private Integer challengeId;
+    private Integer updatedStatus;
+    private List<UpdateProjectTodo> todoList = new ArrayList<>();
 }

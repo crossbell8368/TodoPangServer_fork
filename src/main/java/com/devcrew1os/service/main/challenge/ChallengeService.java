@@ -1,6 +1,7 @@
 package com.devcrew1os.service.main.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.common.enums.ProjectChallengeStatus;
 import com.devcrew1os.common.enums.ProjectTodoStatus;
 import com.devcrew1os.common.enums.UserLoggingAction;
 import com.devcrew1os.dto.main.challenge.*;
@@ -168,7 +169,7 @@ public class ChallengeService {
         if(!isRequestValid(userId, req, res)) return res;
 
         // 2. 데이터 업데이트
-        if(!updateDataProcess(userId, req, res)) return res;
+        if(!registerDataProcess(userId, req, res)) return res;
 
         res.setSuccess(true);
         res.addMessage("[Info] Successfully registered challenge data");
@@ -207,10 +208,10 @@ public class ChallengeService {
         return true;
     }
 
-    private boolean updateDataProcess(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
+    private boolean registerDataProcess(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
 
         // 1. update data (transaction)
-        Integer projectId = updateProjectData(userId, req, res);
+        Integer projectId = registerProjectData(userId, req, res);
         if(projectId == null) return false;
 
         // 2. record log
@@ -218,7 +219,7 @@ public class ChallengeService {
         return true;
     }
 
-    private Integer updateProjectData(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
+    private Integer registerProjectData(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
         try {
             // 1. prepare data
             ProjectInfo projectData = transaction.getProject(userId);
@@ -228,6 +229,7 @@ public class ChallengeService {
             ProjectChallenge projectChallenge = ProjectChallenge.builder()
                     .projectId(projectData.getId())
                     .challengeInfoId(req.getChallengeId())
+                    .challengeStatus(ProjectChallengeStatus.ONGOING.getValue())
                     .build();
 
             List<ProjectTodo> projectTodoList = req.getTodoIds().stream()

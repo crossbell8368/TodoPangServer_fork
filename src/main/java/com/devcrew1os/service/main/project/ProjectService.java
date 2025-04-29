@@ -1,6 +1,7 @@
 package com.devcrew1os.service.main.project;
 
 import com.devcrew1os.common.enums.ErrorCode;
+import com.devcrew1os.common.enums.ProjectUpdateType;
 import com.devcrew1os.dto.main.project.*;
 import com.devcrew1os.entity.main.challenge.ChallengeTodo;
 import com.devcrew1os.entity.main.project.ProjectChallenge;
@@ -34,105 +35,26 @@ public class ProjectService {
     public GetProjectRes getProject(String userId) {
         GetProjectRes res = new GetProjectRes(false, "[Info] Get project initiated", ErrorCode.OK);
 
-        GetProjectData data = getProjectData(userId, res);
-        if(data == null) return res;
-        res.setData(data);
-
-        res.setSuccess(true);
-        res.addMessage("[Success] Fetch ProjectData complete");
-        logger.error("[ProjectService][{}] Successfully fetch project related data", userId);
-        return res;
-    }
-
-    private GetProjectData getProjectData(String userId, GetProjectRes res) {
         try {
-            // 1.prepare data
-            UserInfo userData = transaction.getUserInfo(userId);
-            ProjectInfo projectData = transaction.getProjectInfo(userId);
-            List<ProjectTodo> projectTodos = transaction.getProjectTodos(projectData.getId());
-            List<ProjectChallenge> projectChallenges = transaction.getProjectChallenges(projectData.getId());
+            GetProjectData data = transaction.getProjectProcess(userId);
+            res.setData(data);
+            res.setSuccess(true);
+            res.addMessage("[Success] Fetch ProjectData complete");
+            logger.info("[ProjectService][{}] Successfully fetch project related data", userId);
+            return res;
 
-            // 2-1. fetch ProjectChallenge
-            List<Integer> challengeIds = projectChallenges.stream()
-                    .map(ProjectChallenge::getChallengeInfoId)
-                    .collect(Collectors.toList());
-            List<ChallengeInfoProjection> challengeInfoList = transaction.getChallengeList(challengeIds);
-
-            // 2-2. fetch ProjectTodo
-            List<Integer> todoIds = projectTodos.stream()
-                    .map(ProjectTodo::getProjectTodoId)
-                    .collect(Collectors.toList());
-            List<ChallengeTodo> challengeTodoList = transaction.getChallengeTodos(todoIds);
-
-            // 3. assemble data
-            List<GetProjectChallenge> dataList = assembleData(
-                    challengeIds,
-                    challengeInfoList,
-                    challengeTodoList,
-                    projectTodos
-            );
-
-            // 4. struct return dto
-            return new GetProjectData(
-                    userData.getUserName(),
-                    dataList.size(),
-                    dataList
-            );
+        } catch(RuntimeException err) {
+            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.addMessage("[Failed]" + err.getMessage());
+            logger.info("[ProjectService][{}] Request project data not found: {}", userId, err.getMessage());
+            return res;
 
         } catch(Exception err) {
-            res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Error detected, while fetch project related data");
-            logger.error("[ProjectService][{}] Failed to fetch project related data: {}", userId, err.getMessage());
-            return null;
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            res.addMessage("[Failed]" + err.getMessage());
+            logger.info("[ProjectService][{}] Failed to fetch project related data: {}", userId, err.getMessage());
+            return res;
         }
-    }
-
-    private List<GetProjectChallenge> assembleData(
-            List<Integer> challengeIds,
-            List<ChallengeInfoProjection> challengeInfoList,
-            List<ChallengeTodo> challengeTodoList,
-            List<ProjectTodo> projectTodos
-    ) {
-        // 3-1. Indexing challengeInfo
-        Map<Integer, ChallengeInfoProjection> challengeInfoMap = challengeInfoList.stream()
-                .collect(Collectors.toMap(ChallengeInfoProjection::getId, Function.identity()));
-
-        // 3-2. Indexing challengeTodo
-        Map<Integer, ChallengeTodo> challengeTodoMap = challengeTodoList.stream()
-                .collect(Collectors.toMap(ChallengeTodo::getId, Function.identity()));
-
-        // 3-3. Grouping ProjectTodo
-        Map<Integer, List<ProjectTodo>> projectTodoMap = projectTodos.stream()
-                .collect(Collectors.groupingBy(ProjectTodo::getProjectChallengeId));
-
-        // 3-4. struct return data: Challenge
-        List<GetProjectChallenge> challengeDtoList = new ArrayList<>();
-        for(Integer challengeId : challengeIds) {
-
-            ChallengeInfoProjection challengeInfo = challengeInfoMap.get(challengeId);
-
-            List<ProjectTodo> challengeInfoUnitTodo = projectTodoMap.getOrDefault(challengeId, Collections.emptyList());
-
-            List<GetProjectTodo> projectTodoList = new ArrayList<>();
-            for(ProjectTodo pt : challengeInfoUnitTodo){
-                ChallengeTodo todo = challengeTodoMap.get(pt.getProjectTodoId());
-                String title = (todo != null) ? todo.getDesc() : "Unknown Todo";
-                projectTodoList.add(
-                        new GetProjectTodo(
-                                challengeId,
-                                pt.getProjectTodoId(),
-                                title,
-                                pt.getProjectTodoStatus()
-                        )
-                );
-            }
-            challengeDtoList.add(new GetProjectChallenge(
-                    challengeId,
-                    challengeInfo != null ? challengeInfo.getTitle() : "Unknown Challenge",
-                    projectTodoList
-            ));
-        }
-        return challengeDtoList;
     }
 
     /*===========================
@@ -140,34 +62,126 @@ public class ProjectService {
     ===========================*/
     public UpdateProjectRes updateProjectRes(String userId, UpdateProjectReq req) {
         UpdateProjectRes res = new UpdateProjectRes(false, "[Info] Update project initiated", ErrorCode.OK);
+        ProjectUpdateType type = ProjectUpdateType.UNKNOWN;
 
-        if(!isRequestValid(userId, req, res)) return res;
+        type = requestConfirm(userId, req, res);
+        if(type == ProjectUpdateType.UNKNOWN || type == ProjectUpdateType.INVALID) return res;
 
-        if(!transaction.updateProjectProcess(userId, req, res)) return res;
+        try {
+            transaction.updateProjectProcess(userId, req, type);
+            res.setSuccess(true);
+            res.addMessage("[Info] Successfully update project data");
+            logger.info("[ProjectService][{}] Successfully update project data", userId);
+            return res;
 
-        res.setSuccess(true);
-        res.addMessage("[Info] Successfully update project todo data");
-        logger.info("[ProjectService][{}] Successfully update project todo data", userId);
-        return res;
+        } catch(RuntimeException err) {
+            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.addMessage("[Failed]" + err.getMessage());
+            logger.info("[ProjectService][{}] Request project update data not found: {}", userId, err.getMessage());
+            return res;
+
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            res.addMessage("[Failed]" + err.getMessage());
+            logger.info("[ProjectService][{}] Failed to update project data: {}", userId, err.getMessage());
+            return res;
+        }
     }
 
-    private boolean isRequestValid(String userId, UpdateProjectReq req, UpdateProjectRes res) {
+    private ProjectUpdateType requestConfirm(String userId, UpdateProjectReq req, UpdateProjectRes res) {
+        ProjectUpdateType determinedRequestType = ProjectUpdateType.UNKNOWN;
+        List<String> errors = new ArrayList<>();
+        boolean isTypeDetermined = false;
+        boolean mixedTypeDetected = false;
 
+        // 1. check update list
         if(req.getChallengeList() == null || req.getChallengeList().isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             res.addMessage("[Failed] ChallengeList must not be null or empty");
             logger.error("[ProjectService][{}] Invalid argument detected, at update project: {}", userId, res.getMessage());
-            return false;
+            return ProjectUpdateType.INVALID;
         }
 
-        for(UpdateProjectChallenge challenge : req.getChallengeList()) {
-            if(challenge.getTodoList() == null || challenge.getTodoList().isEmpty()){
-                res.setErrorCode(ErrorCode.BAD_REQUEST);
-                res.addMessage("[Failed] ChallengeList must not be null or empty");
-                logger.error("[ProjectService][{}] Invalid argument detected, at update project: {}", userId, res.getMessage());
-                return false;
+        // 2. check update element
+        List<UpdateProjectChallenge> challengesToUpdate = req.getChallengeList();
+        for (int i = 0; i < challengesToUpdate.size(); i++) {
+            UpdateProjectChallenge challenge = challengesToUpdate.get(i);
+            ProjectUpdateType currentEntryType = ProjectUpdateType.INVALID;
+
+            if (challenge == null) {
+                errors.add("[Failed] Challenge data at index " + i + " is null.");
+                continue;
+            }
+
+            // 2-1. ID value check
+            Integer currentChallengeId = challenge.getChallengeId();
+            if (currentChallengeId == null) {
+                errors.add("[Failed] ChallengeId at index " + i + " is null");
+            }
+
+            // 2-2. update type check
+            boolean hasStatusUpdate = challenge.getUpdatedStatus() != null;
+            boolean hasTodoUpdates = challenge.getTodoList() != null;
+
+            if (!hasStatusUpdate && !hasTodoUpdates) {
+                errors.add("[Failed] No update data for all " + " at index " + i);
+                currentEntryType = ProjectUpdateType.INVALID;
+            } else if (hasStatusUpdate && hasTodoUpdates) {
+                errors.add("[Failed] Both update data exist " + " at index " + i);
+                currentEntryType = ProjectUpdateType.INVALID;
+            } else if (hasStatusUpdate) {
+                currentEntryType = ProjectUpdateType.CHALLENGE;
+            } else {
+                currentEntryType = ProjectUpdateType.TODO;
+
+                // 2-3 Todo update case: element check
+                List<UpdateProjectTodo> todoList = challenge.getTodoList();
+                for (int j = 0; j < todoList.size(); j++) {
+                    UpdateProjectTodo todo = todoList.get(j);
+                    if (todo == null) {
+                        errors.add("[Failed] Todo at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                        continue;
+                    }
+                    if (todo.getTodoId() == null) {
+                        errors.add("[Failed] TodoId at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                    }
+                    if(todo.getChallengeId() == null) {
+                        errors.add("[Failed] Todo challengeId at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                    }
+                    if(todo.getUpdatedStatus() == null) {
+                        errors.add("[Failed] Todo updatedStatus at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                    }
+                }
+            }
+
+            if (currentEntryType != ProjectUpdateType.INVALID) {
+                if (!isTypeDetermined) {
+                    determinedRequestType = currentEntryType;
+                    isTypeDetermined = true;
+                } else if (determinedRequestType != currentEntryType) {
+                    mixedTypeDetected = true;
+                    break;
+                }
             }
         }
-        return true;
+        if (mixedTypeDetected) {
+            errors.add("[Failed] Mixed update types found. Request must contain only Challenge status updates OR only Todo list updates.");
+        }
+        if (!errors.isEmpty()) {
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            String errorMessage = String.join("\n", errors);
+            res.addMessage(errorMessage);
+            logger.error("[ProjectService][{}] Invalid arguments detected during project update validation:\n{}", userId, errorMessage);
+            return ProjectUpdateType.INVALID;
+        }
+        if (!isTypeDetermined) {
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            res.addMessage("[Failed] No valid update entries found in the request.");
+            logger.error("[ProjectService][{}] No valid update entries found in the request challenge list.", userId);
+            return ProjectUpdateType.INVALID;
+        }
+        res.addMessage("[Success] Update project request is valid");
+        logger.info("[ProjectService][{}] Update project request is valid", userId);
+        return determinedRequestType;
     }
 }

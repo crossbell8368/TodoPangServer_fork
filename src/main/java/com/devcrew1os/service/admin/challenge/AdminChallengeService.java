@@ -45,7 +45,7 @@ public class AdminChallengeService {
             return res;
 
         } catch (Exception err) {
-            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
             res.addMessage("[Failed] Failed to get challenge data.");
             logger.info("[AdminChallenge][{}] Failed to retrieved admin challenges: {}", adminId, err.getMessage());
             return res;

@@ -49,6 +49,16 @@ public class ProjectController {
     /*===========================
        목표 이루기
     ===========================*/
+    @PostMapping("/complete")
+    public ResponseEntity<?> completeProject(
+            @RequestBody UpdateProjectReq req
+    ) {
+        UpdateProjectRes res = service.updateProjectRes(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                req
+        );
+        return response.handleResult(res);
+    }
 
     /*===========================
        목표 삭제
