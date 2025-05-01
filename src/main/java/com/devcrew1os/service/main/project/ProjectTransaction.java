@@ -173,7 +173,7 @@ public class ProjectTransaction {
         for(ProjectChallenge entity : projectChallenges) {
             UpdateProjectChallenge updated = challengeUpdatedMap.get(entity.getId());
             if(applyProjectChallengeUpdate(userId, entity, updated)) {
-                recordProjectLog(userId, projectId, updated, now);
+                recordProjectLog(userId, projectId, entity.getChallengeInfoId(), now);
                 isAnyUpdateProceed = true;
             }
         }
@@ -196,11 +196,11 @@ public class ProjectTransaction {
         return isUpdated;
     }
 
-    private void recordProjectLog(String userId, Integer projectId, UpdateProjectChallenge updated, LocalDateTime now) {
+    private void recordProjectLog(String userId, Integer projectId, Integer challengeId, LocalDateTime now) {
         UserProjectActionLog log = UserProjectActionLog.builder()
                 .userId(userId)
                 .projectId(projectId)
-                .challengeInfoId(updated.getChallengeId())
+                .challengeInfoId(challengeId)
                 .userActionType(UserLoggingAction.COMPLETE_CHALLENGE.getValue())
                 .userActionAt(now)
                 .build();
@@ -235,7 +235,7 @@ public class ProjectTransaction {
         for(ProjectTodo entity : projectTodos) {
             UpdateProjectTodo updated = todoUpdatedMap.get(entity.getId());
             if(applyProjectTodoUpdate(userId, entity,updated)){
-                recordProjectLog(userId, projectId, updated, now);
+                recordProjectLog(userId, projectId, entity.getProjectChallengeId(), updated, now);
                 isAnyUpdateProceed = true;
             }
         }
@@ -258,7 +258,7 @@ public class ProjectTransaction {
         return isUpdated;
     }
 
-    private void recordProjectLog(String userId, Integer projectId, UpdateProjectTodo updated, LocalDateTime now) {
+    private void recordProjectLog(String userId, Integer projectId, Integer challengeId, UpdateProjectTodo updated, LocalDateTime now) {
         Integer actionType = 0;
         if(updated.getUpdatedStatus() == 1){
             actionType = UserLoggingAction.COMPLETE_TODO.getValue();
@@ -268,7 +268,7 @@ public class ProjectTransaction {
         UserProjectActionLog log = UserProjectActionLog.builder()
                 .userId(userId)
                 .projectId(projectId)
-                .challengeInfoId(updated.getChallengeId())
+                .challengeInfoId(challengeId)
                 .userActionType(actionType)
                 .userActionAt(now)
                 .build();

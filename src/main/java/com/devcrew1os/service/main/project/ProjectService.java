@@ -109,7 +109,7 @@ public class ProjectService {
             ProjectUpdateType currentEntryType = ProjectUpdateType.INVALID;
 
             if (challenge == null) {
-                errors.add("[Failed] Challenge data at index " + i + " is null.");
+                errors.add("[Failed] Challenge data at index(" + i + ") is null.");
                 continue;
             }
 
@@ -124,10 +124,10 @@ public class ProjectService {
             boolean hasTodoUpdates = challenge.getTodoList() != null;
 
             if (!hasStatusUpdate && !hasTodoUpdates) {
-                errors.add("[Failed] No update data for all " + " at index " + i);
+                errors.add("[Failed] No update data for all at index: " + i);
                 currentEntryType = ProjectUpdateType.INVALID;
             } else if (hasStatusUpdate && hasTodoUpdates) {
-                errors.add("[Failed] Both update data exist " + " at index " + i);
+                errors.add("[Failed] Both update data exist " + " at index: " + i);
                 currentEntryType = ProjectUpdateType.INVALID;
             } else if (hasStatusUpdate) {
                 currentEntryType = ProjectUpdateType.CHALLENGE;
