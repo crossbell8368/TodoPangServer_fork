@@ -1,8 +1,9 @@
 package com.devcrew1os.service.main.challenge;
 
-import com.devcrew1os.dto.main.challenge.ChallengeDetailData;
-import com.devcrew1os.dto.main.challenge.ChallengeReviewData;
-import com.devcrew1os.dto.main.challenge.ChallengeTodoData;
+import com.devcrew1os.common.enums.ProjectChallengeStatus;
+import com.devcrew1os.common.enums.ProjectTodoStatus;
+import com.devcrew1os.common.enums.UserLoggingAction;
+import com.devcrew1os.dto.main.challenge.*;
 import com.devcrew1os.entity.main.challenge.ChallengeCategory;
 import com.devcrew1os.entity.main.challenge.ChallengeInfo;
 import com.devcrew1os.entity.main.challenge.ChallengeStat;
@@ -18,10 +19,13 @@ import com.devcrew1os.repository.main.challenge.*;
 import com.devcrew1os.repository.main.project.ProjectTodoRepository;
 import com.devcrew1os.repository.log.UserActionRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +43,8 @@ public class ChallengeTransaction {
 
     private final ChallengeReviewStatRepository reviewStatRepo;
     private final UserActionRepository userLogRepo;
+
+    private static final Logger logger = LoggerFactory.getLogger(ChallengeTransaction.class);
     /*===========================
        도전과제 목록조회
     ===========================*/
@@ -64,18 +70,28 @@ public class ChallengeTransaction {
     /*===========================
        도전과제 상세조회
     ===========================*/
-
+    @Transactional(readOnly = true)
     public ChallengeDetailData getChallengeDetailData(int challengeId) {
         // 1. get Info
-        ChallengeInfo info = getChallengeInfo(challengeId);
+        ChallengeInfo info = challengeInfoRepo.findById(challengeId).orElseThrow(
+                () -> new RuntimeException("ChallengeInfo not found: " + challengeId)
+        );
 
         // 2. get TodoList
-        List<ChallengeTodoData> todos = getChallengeTodoList(challengeId).stream()
+        List<ChallengeTodo> todoList = challengeTodoRepo.findAllByChallengeInfoId(challengeId);
+        if(todoList.isEmpty()) {
+            throw new RuntimeException("Challenge Todo List is empty");
+        }
+        List<ChallengeTodoData> todos = todoList.stream()
                 .map(todo -> new ChallengeTodoData(todo.getId(), todo.getDesc()))
                 .collect(Collectors.toList());
 
         // 3. get ReviewList
-        List<ChallengeReviewData> reviews = getChallengeReview(challengeId).stream()
+        List<ChallengeReviewStat> reviewList = reviewStatRepo.findAllByInfoId(challengeId);
+        if(reviewList.isEmpty()){
+            throw new RuntimeException("ChallengeReview list is empty");
+        }
+        List<ChallengeReviewData> reviews = reviewList.stream()
                 .map(review -> new ChallengeReviewData(
                         review.getId(),
                         review.getReviewInfo().getDesc(),
@@ -94,50 +110,88 @@ public class ChallengeTransaction {
         );
     }
 
-    public ChallengeInfo getChallengeInfo(int challengeId) {
-        return challengeInfoRepo.findById(challengeId).orElseThrow(
-                () -> new RuntimeException("ChallengeInfo not found: " + challengeId)
-        );
-    }
-
-    public List<ChallengeTodo> getChallengeTodoList(int challengeId) {
-        List<ChallengeTodo> todoList = challengeTodoRepo.findAllByChallengeInfoId(challengeId);
-        if(todoList.isEmpty()) {
-            throw new RuntimeException("Challenge Todo List is empty");
-        } else {
-            return todoList;
-        }
-    }
-
-    public List<ChallengeReviewStat> getChallengeReview(int challengeId) {
-        List<ChallengeReviewStat> reviewList = reviewStatRepo.findAllByInfoId(challengeId);
-        if(reviewList.isEmpty()){
-            throw new RuntimeException("ChallengeReview list is empty");
-        } else {
-            return reviewList;
-        }
-    }
-
     /*===========================
        도전과제 등록
     ===========================*/
-    public ProjectInfo getProject(String userId) {
-        return projectInfoRepo.findByUserId(userId).orElseThrow(
-                () -> new RuntimeException("Project not found with " + userId)
+    @Transactional
+    public boolean registerChallenge(String userId, ChallengeRegisterReq req) {
+
+        LocalDateTime now = LocalDateTime.now();
+        ProjectInfo projectData = projectInfoRepo.findByUserId(userId).orElseThrow(
+                () -> new RuntimeException("Request user project data not found")
         );
+
+        // 1. Check challenge & todo
+        ChallengeRegisterDTO dto = getUnregisteredChallengeData(userId, projectData.getId(), req);
+        if(!dto.isChallengeRegisterNeed() && dto.getUnregisteredTodoIds().isEmpty()){
+            return false;
+        }
+        // 2-1. challenge register process
+        if(dto.isChallengeRegisterNeed()){
+            if(!isExistChallenge(userId, req.getChallengeId(), req.getTodoIds())){
+                throw new RuntimeException("Request challenge(Info) data not found at server");
+            }
+            if(!challengeStatRepo.existsById(req.getChallengeId())){
+                throw new RuntimeException("Challenge not found with " + req.getChallengeId());
+            }
+
+            ProjectChallenge projectChallenge = ProjectChallenge.builder()
+                    .projectId(projectData.getId())
+                    .challengeInfoId(req.getChallengeId())
+                    .challengeStatus(ProjectChallengeStatus.ONGOING.getValue())
+                    .build();
+
+            projectChallengeRepo.save(projectChallenge);
+            challengeStatRepo.updatePopularity(req.getChallengeId());
+        }
+
+        // 2-2. challenge todo register process
+        List<ProjectTodo> projectTodoList = dto.getUnregisteredTodoIds().stream()
+                .map(todoId -> ProjectTodo.builder()
+                        .projectId(projectData.getId())
+                        .projectChallengeId(req.getChallengeId())
+                        .projectTodoId(todoId)
+                        .projectTodoStatus(ProjectTodoStatus.UNCHECK.getValue())
+                        .build())
+                .collect(Collectors.toList());
+
+        // 3. update date
+        projectTodoRepo.saveAll(projectTodoList);
+
+        // 4. record log
+        recordUserLog(userId, projectData.getId(), now, req, dto);
+        return true;
     }
 
-    public ChallengeStat getChallengeStat(int challengeId) {
-        return challengeStatRepo.findById(challengeId).orElseThrow(
-                () -> new RuntimeException("Challenge not found with " + challengeId)
-        );
+    private ChallengeRegisterDTO getUnregisteredChallengeData(String userId, Integer projectId, ChallengeRegisterReq req) {
+
+        // check challenge
+        if(!projectChallengeRepo.existsByProjectIdAndChallengeInfoId(projectId, req.getChallengeId())){
+            return new ChallengeRegisterDTO(true, new HashSet<>(req.getTodoIds()));
+        }
+        // check todos
+        Set<Integer> requestTodos = new HashSet<>(req.getTodoIds());
+        Set<Integer> registeredTodos = projectTodoRepo.findAllByProjectIdAndProjectTodoIdIn(projectId, requestTodos).stream()
+                .map(ProjectTodo::getProjectTodoId).collect(Collectors.toSet());
+        Set<Integer> unregisteredTodos = requestTodos.stream()
+                .filter(reqId -> !registeredTodos.contains(reqId))
+                .collect(Collectors.toSet());
+
+        if(unregisteredTodos.isEmpty()){
+            logger.info("[ChallengeTrans][{}] Request Challenge({}) and all requested Todos({}) exist at project", userId, req.getChallengeId(), requestTodos);
+        } else {
+            logger.info("[ChallengeTrans][{}] ProjectChallenge {} exists. New todos to add: {}. Existing: {}. Requested: {}",
+                    userId, req.getChallengeId(), unregisteredTodos, registeredTodos, requestTodos);
+        }
+        return new ChallengeRegisterDTO(false, unregisteredTodos);
     }
 
-    public void isChallengeExist(int challengeId, List<Integer> todoIds) {
+    public boolean isExistChallenge(String userId, int challengeId, List<Integer> todoIds) {
 
         // 1. 요청 Challenge 객체 확인
         if(!challengeInfoRepo.existsChallengeInfoById(challengeId)) {
-            throw new RuntimeException("ChallengeInfo not found: " + challengeId);
+            logger.warn("[ChallengeTrans][{}] Request Challenge({}) not found", userId, challengeId);
+            return false;
         }
 
         // 2. 요청 ChallengeTodo 객체 확인
@@ -146,27 +200,42 @@ public class ChallengeTransaction {
                 .filter(id -> !existingTodoIds.contains(id))
                 .collect(Collectors.toList());
         if (!missing.isEmpty()) {
-            throw new RuntimeException("TodoInfo not found for challengeId=" + challengeId + ", missingIds=" + missing);
+            logger.warn("[ChallengeTrans][{}] Request Challenge({}) Todos not found: {}", userId, challengeId, missing);
+            return false;
+        } else {
+            return true;
         }
     }
 
-    @Transactional
-    public void updateProjects(ChallengeStat challengeStat, ProjectChallenge projectChallenge, List<ProjectTodo> projectTodos) {
-        try {
-            projectChallengeRepo.save(projectChallenge);
-            projectTodoRepo.saveAll(projectTodos);
-            challengeStatRepo.save(challengeStat);
-        } catch(Exception err) {
-            throw new RuntimeException("ProjectData Transaction failed, initiate rolling back: " + err.getMessage(), err);
-        }
-    }
+    private void recordUserLog(String userId,
+                               Integer projectId,
+                               LocalDateTime now,
+                               ChallengeRegisterReq req,
+                               ChallengeRegisterDTO dto
+    ) {
+        List<UserProjectActionLog> logList = new ArrayList<>();
 
-    @Transactional
-    public void updateProjectLog(List<UserProjectActionLog> logList) {
-        try {
-            userLogRepo.saveAll(logList);
-        } catch(Exception err) {
-            throw new RuntimeException("UserProjectLog Transaction failed, initiate rolling back: " + err.getMessage(), err);
+        if(dto.isChallengeRegisterNeed()){
+            UserProjectActionLog challengeLog = UserProjectActionLog.builder()
+                    .userId(userId)
+                    .projectId(projectId)
+                    .challengeInfoId(req.getChallengeId())
+                    .userActionType(UserLoggingAction.ADD_CHALLENGE.getValue())
+                    .userActionAt(now)
+                    .build();
+            logList.add(challengeLog);
         }
+        List<UserProjectActionLog> todoLog = dto.getUnregisteredTodoIds().stream()
+                .map(todoId -> UserProjectActionLog.builder()
+                        .userId(userId)
+                        .projectId(projectId)
+                        .challengeInfoId(req.getChallengeId())
+                        .challengeTodoId(todoId)
+                        .userActionType(UserLoggingAction.ADD_TODO.getValue())
+                        .userActionAt(now)
+                        .build())
+                .collect(Collectors.toList());
+        logList.addAll(todoLog);
+        userLogRepo.saveAll(logList);
     }
 }

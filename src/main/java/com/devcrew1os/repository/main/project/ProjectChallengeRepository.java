@@ -13,6 +13,8 @@ import java.util.Set;
 
 @Repository
 public interface ProjectChallengeRepository extends JpaRepository<ProjectChallenge, Integer> {
+    boolean existsByProjectIdAndChallengeInfoId(Integer projectId, Integer challengeInfoId);
+
     List<ProjectChallenge> findAllByProjectId(Integer projectId);
     List<ProjectChallenge> findAllByIdIn(Set<Integer> projectIds);
 }

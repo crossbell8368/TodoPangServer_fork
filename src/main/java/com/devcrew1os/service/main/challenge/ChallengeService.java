@@ -165,16 +165,32 @@ public class ChallengeService {
     public ChallengeRegisterRes registerChallenge(String userId, ChallengeRegisterReq req) {
         ChallengeRegisterRes res = new ChallengeRegisterRes(false, "[Info] Challenge register initiated", ErrorCode.OK);
 
-        // 1. 요청객체 검증
         if(!isRequestValid(userId, req, res)) return res;
 
-        // 2. 데이터 업데이트
-        if(!registerDataProcess(userId, req, res)) return res;
+        try {
+            if(!transaction.registerChallenge(userId, req)){
+                res.setErrorCode(ErrorCode.BAD_REQUEST);
+                res.addMessage("[Failed] Already registered challenge or todos");
+                return res;
+            } else {
+                res.setSuccess(true);
+                res.addMessage("[Info] Successfully registered challenge data");
+                logger.info("[ChallengeService][{}] Successfully register challenge data", userId);
+                return res;
+            }
 
-        res.setSuccess(true);
-        res.addMessage("[Info] Successfully registered challenge data");
-        logger.info("[ChallengeService][{}] Successfully register challenge data", userId);
-        return res;
+        } catch(RuntimeException err) {
+            res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+            res.addMessage("[Failed] " + err.getMessage());
+            logger.error("[ChallengeService][{}] Failed to register challenge: {}", userId, err.getMessage());
+            return res;
+
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
+            res.addMessage("[Failed] " + err.getMessage());
+            logger.error("[ChallengeService][{}] Server error detected at register challenge: {}", userId, err.getMessage());
+            return res;
+        }
     }
 
     private boolean isRequestValid(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
@@ -193,97 +209,8 @@ public class ChallengeService {
             logger.error("[ChallengeService][{}] Invalid argument detected, at register todos: {}", userId, res.getMessage());
             return false;
         }
-
-        // 2. request data validation check
-        try {
-            transaction.isChallengeExist(req.getChallengeId(), req.getTodoIds());
-        } catch(Exception err) {
-            res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] Request challenge data not exist");
-            logger.error("[ChallengeService][{}] Failed to fetch reqeust challenge & todo data: {}", userId, res.getMessage());
-            return false;
-        }
-        res.addMessage("[Success] Valid todo register request");
-        logger.info("[ChallengeService][{}] Valid todo register request", userId);
+        res.addMessage("[Success] Todo register request is valid");
+        logger.info("[ChallengeService][{}] Todo register request is valid", userId);
         return true;
-    }
-
-    private boolean registerDataProcess(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
-
-        // 1. update data (transaction)
-        Integer projectId = registerProjectData(userId, req, res);
-        if(projectId == null) return false;
-
-        // 2. record log
-        recordProjectLog(userId, projectId, req);
-        return true;
-    }
-
-    private Integer registerProjectData(String userId, ChallengeRegisterReq req, ChallengeRegisterRes res) {
-        try {
-            // 1. prepare data
-            ProjectInfo projectData = transaction.getProject(userId);
-            ChallengeStat statData = transaction.getChallengeStat(req.getChallengeId());
-
-            // 2. struct data
-            ProjectChallenge projectChallenge = ProjectChallenge.builder()
-                    .projectId(projectData.getId())
-                    .challengeInfoId(req.getChallengeId())
-                    .challengeStatus(ProjectChallengeStatus.ONGOING.getValue())
-                    .build();
-
-            List<ProjectTodo> projectTodoList = req.getTodoIds().stream()
-                    .map(todoId -> ProjectTodo.builder()
-                            .projectId(projectData.getId())
-                            .projectChallengeId(req.getChallengeId())
-                            .projectTodoId(todoId)
-                            .projectTodoStatus(ProjectTodoStatus.UNCHECK.getValue())
-                            .build())
-                    .collect(Collectors.toList());
-
-            statData.setPopularity(statData.getPopularity() + 1);
-
-            // 3. adjust data
-            transaction.updateProjects(statData, projectChallenge, projectTodoList);
-            return projectData.getId();
-
-        } catch(Exception err) {
-            res.setErrorCode(ErrorCode.DATABASE_ERROR);
-            res.addMessage("[Failed] ProjectData update failed");
-            logger.error("[ChallengeService][{}] Failed to update project data: {}", userId, res.getMessage());
-            return null;
-        }
-    }
-
-    private void recordProjectLog(String userId, Integer projectId, ChallengeRegisterReq req) {
-        LocalDateTime now = LocalDateTime.now();
-        try {
-            // 1. struct log
-            UserProjectActionLog challengeLog = UserProjectActionLog.builder()
-                    .userId(userId)
-                    .projectId(projectId)
-                    .challengeInfoId(req.getChallengeId())
-                    .userActionType(UserLoggingAction.ADD_CHALLENGE.getValue())
-                    .userActionAt(now)
-                    .build();
-
-            List<UserProjectActionLog> logList = req.getTodoIds().stream()
-                    .map(todoId -> UserProjectActionLog.builder()
-                            .userId(userId)
-                            .projectId(projectId)
-                            .challengeInfoId(req.getChallengeId())
-                            .challengeTodoId(todoId)
-                            .userActionType(UserLoggingAction.ADD_TODO.getValue())
-                            .userActionAt(now)
-                            .build())
-                    .collect(Collectors.toList());
-            logList.add(challengeLog);
-
-            // 2. adjust log
-            transaction.updateProjectLog(logList);
-
-        } catch(Exception err) {
-            logger.error("[ChallengeService][{}] Failed to update project log: {}", userId, err.getMessage());
-        }
     }
 }

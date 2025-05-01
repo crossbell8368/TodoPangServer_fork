@@ -16,4 +16,6 @@ import java.util.Set;
 public interface ProjectTodoRepository extends JpaRepository<ProjectTodo, Integer> {
     List<ProjectTodo> findAllByProjectId(int projectId);
     List<ProjectTodo> findAllByProjectIdAndIdIn(Integer projectId, Set<Integer> ids);
+
+    List<ProjectTodo> findAllByProjectIdAndProjectTodoIdIn(int projectId, Set<Integer> projectTodoIds);
 }

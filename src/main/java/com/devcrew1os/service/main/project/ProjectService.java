@@ -139,17 +139,17 @@ public class ProjectService {
                 for (int j = 0; j < todoList.size(); j++) {
                     UpdateProjectTodo todo = todoList.get(j);
                     if (todo == null) {
-                        errors.add("[Failed] Todo at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                        errors.add("[Failed] Todo at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
                         continue;
                     }
                     if (todo.getTodoId() == null) {
-                        errors.add("[Failed] TodoId at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                        errors.add("[Failed] TodoId at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
                     }
                     if(todo.getChallengeId() == null) {
-                        errors.add("[Failed] Todo challengeId at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                        errors.add("[Failed] Todo challengeId at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
                     }
                     if(todo.getUpdatedStatus() == null) {
-                        errors.add("[Failed] Todo updatedStatus at index " + j + "within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                        errors.add("[Failed] Todo updatedStatus at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
                     }
                 }
             }
