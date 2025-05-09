@@ -1,25 +1,17 @@
 package com.devcrew1os.service.main.project;
 
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.common.enums.ProjectUpdateType;
+import com.devcrew1os.common.enums.project.ProjectChallengeStatus;
+import com.devcrew1os.common.enums.project.ProjectTodoStatus;
+import com.devcrew1os.common.enums.project.ProjectUpdateType;
 import com.devcrew1os.dto.main.project.*;
-import com.devcrew1os.entity.main.challenge.ChallengeTodo;
-import com.devcrew1os.entity.main.project.ProjectChallenge;
-import com.devcrew1os.entity.main.project.ProjectInfo;
-import com.devcrew1os.entity.main.project.ProjectTodo;
-import com.devcrew1os.entity.main.user.UserInfo;
-import com.devcrew1os.repository.main.challenge.ChallengeInfoProjection;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,7 +52,7 @@ public class ProjectService {
     /*===========================
        목표 업데이트
     ===========================*/
-    public UpdateProjectRes updateProjectRes(String userId, UpdateProjectReq req) {
+    public UpdateProjectRes updateProjects(String userId, UpdateProjectReq req) {
         UpdateProjectRes res = new UpdateProjectRes(false, "[Info] Update project initiated", ErrorCode.OK);
         ProjectUpdateType type = ProjectUpdateType.UNKNOWN;
 
@@ -120,7 +112,7 @@ public class ProjectService {
             }
 
             // 2-2. update type check
-            boolean hasStatusUpdate = challenge.getUpdatedStatus() != null;
+            boolean hasStatusUpdate = challenge.getUpdatedStatus() != null && ProjectChallengeStatus.contains(challenge.getUpdatedStatus());
             boolean hasTodoUpdates = challenge.getTodoList() != null;
 
             if (!hasStatusUpdate && !hasTodoUpdates) {
@@ -150,6 +142,10 @@ public class ProjectService {
                     }
                     if(todo.getUpdatedStatus() == null) {
                         errors.add("[Failed] Todo updatedStatus at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
+                    } else {
+                        if(!ProjectTodoStatus.contains(todo.getUpdatedStatus())){
+                            errors.add("[Failed] Todo updatedStatus at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is invalid");
+                        }
                     }
                 }
             }

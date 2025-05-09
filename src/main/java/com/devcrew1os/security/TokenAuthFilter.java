@@ -1,9 +1,9 @@
 package com.devcrew1os.security;
 
 import com.devcrew1os.dto.Response;
-import com.devcrew1os.repository.admin.AdminUserRepository;
-import com.devcrew1os.repository.main.users.UserInfoRepository;
-import com.devcrew1os.service.util.TokenService;
+import com.devcrew1os.dto.main.auth.LoginDTO;
+import com.devcrew1os.repository.main.users.UsersRepository;
+import com.devcrew1os.common.util.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,8 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TokenAuthFilter extends OncePerRequestFilter {
 
-    private final UserInfoRepository userRepo;
-    private final AdminUserRepository adminRepo;
+    private final UsersRepository userRepo;
     private final TokenService tokenService;
     private final ObjectMapper objectMapper;
 
@@ -42,41 +41,35 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         // 1. check URL
         String path = request.getRequestURI();
         boolean isAdmin = path.startsWith("/admin");
-        boolean isAdminSignUp = path.equals("/admin/auth/signup");
-        boolean isUserSignUp = path.equals("/main/auth/signup");
 
         // 2. check token
         String token = header.substring(7);
-        String userId;
-        try {
-            userId = tokenService.tokenVerifier(token)
-                    .orElseThrow(() -> new RuntimeException("Invalid token"));
-        } catch (Exception err) {
-            setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Failed]Invalid or expired token");
-           return;
-        }
+        LoginDTO dto;
 
         // 3-1. Normal User
-        if(!isUserSignUp && !isAdmin) {
-            if(!userRepo.existsUserInfoByUserId(userId)) {
+        try {
+            dto = tokenService.tokenVerifier(token, isAdmin);
+            if(dto == null) {
+                throw new RuntimeException("Invalid token");
+            }
+        } catch (Exception err) {
+            setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Failed]Invalid or expired token");
+            return;
+        }
+        if(!isAdmin){
+            if(!userRepo.existsUsersByUserId(dto.getUid())) {
                 setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Failed]Invalid userId");
                 return;
             }
         }
 
-        // 3-2. Admin User
-        if(isAdmin && !isAdminSignUp) {
-            if (!adminRepo.existsAdminUserById(userId)) {
-                setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Failed]Invalid userId");
-                return;
-            }
-        }
 
-        // 4. save context
+        // 4-1. save context
         String role = isAdmin ? "ROLE_ADMIN" : "ROLE_USER";
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                userId, null, List.of(new SimpleGrantedAuthority(role))
+                dto.getUid(), null, List.of(new SimpleGrantedAuthority(role))
         );
+        if(isAdmin) auth.setDetails(dto);
         SecurityContextHolder.getContext().setAuthentication(auth);
         filterChain.doFilter(request, response);
     }

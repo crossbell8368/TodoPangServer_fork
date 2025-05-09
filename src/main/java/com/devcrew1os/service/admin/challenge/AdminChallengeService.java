@@ -1,5 +1,6 @@
 package com.devcrew1os.service.admin.challenge;
 
+import com.devcrew1os.common.enums.admin.AdminChallengeUpdateType;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.PageResponse;
 import com.devcrew1os.dto.admin.challenge.*;
@@ -41,13 +42,13 @@ public class AdminChallengeService {
         } catch (RuntimeException err) {
             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
             res.addMessage("[Failed] Admin challenges not found");
-            logger.info("[AdminChallenge][{}] Failed to retrieved challenges: {}", adminId, err.getMessage());
+            logger.error("[AdminChallenge][{}] Failed to found challenges: {}", adminId, err.getMessage());
             return res;
 
         } catch (Exception err) {
             res.setErrorCode(ErrorCode.INTERNAL_ERROR);
             res.addMessage("[Failed] Failed to get challenge data.");
-            logger.info("[AdminChallenge][{}] Failed to retrieved admin challenges: {}", adminId, err.getMessage());
+            logger.error("[AdminChallenge][{}] Failed to retrieved admin challenges: {}", adminId, err.getMessage());
             return res;
         }
     }
@@ -109,10 +110,11 @@ public class AdminChallengeService {
     public UpdateAdminChallengeRes updateAdminChallenges(String adminId, UpdateAdminChallengeReq req) {
         UpdateAdminChallengeRes res = new UpdateAdminChallengeRes(false, "[Info] Update admin challenges initiated", ErrorCode.OK);
 
-        if(!isRequestValid(adminId, req, res)) return res;
+        AdminChallengeUpdateType type = identifyUpdateType(adminId, req, res);
+        if(type == AdminChallengeUpdateType.INVALID) return res;
 
         try {
-            transaction.updateChallengeProcess(adminId, req);
+            transaction.updateChallengeProcess(adminId, type, req);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully update challenge");
             logger.info("[AdminChallenge][{}] Successfully update challenge", adminId);
@@ -132,60 +134,72 @@ public class AdminChallengeService {
         }
     }
 
-    private boolean isRequestValid(String adminId, UpdateAdminChallengeReq req, UpdateAdminChallengeRes res) {
+    private AdminChallengeUpdateType identifyUpdateType(String adminId, UpdateAdminChallengeReq req, UpdateAdminChallengeRes res){
         List<String> errors = new ArrayList<>();
+        boolean isChallengeUpdateNeeded = false;
+        boolean isTodoUpdateNeeded = false;
 
-        if(req == null || req.getUpdatedChallenges() == null || req.getUpdatedChallenges().isEmpty()) {
-            res.setErrorCode(ErrorCode.BAD_REQUEST);
-            res.addMessage("[Error] UpdatedChallenges is required");
-            logger.error("[AdminChallenge][{}] Invalid argument detected, at update challenge: {}", adminId, res.getMessage());
-            return false;
+        if(req.getUpdatedChallenges() == null || req.getUpdatedChallenges().isEmpty()) {
+            return AdminChallengeUpdateType.INVALID;
         }
 
-        List<UpdateAdminChallengeData> challengesToUpdate = req.getUpdatedChallenges();
-        for (int i = 0; i < challengesToUpdate.size(); i++) {
-            UpdateAdminChallengeData challenge = challengesToUpdate.get(i);
+        List<UpdateAdminChallengeData> updateList = req.getUpdatedChallenges();
+        for (int i = 0; i < updateList.size(); i++) {
+            UpdateAdminChallengeData update = updateList.get(i);
 
-            if (challenge == null) {
+            // 1. check necessary field
+            if(update == null) {
                 errors.add("[Error] Challenge data at index " + i + " is null.");
                 continue;
             }
-            if (challenge.getChallengeId() == null) {
+            if (update.getChallengeId() == null) {
                 errors.add("[Error] Challenge ID is required (at index " + i + ").");
                 continue;
             }
-            if (challenge.getCategoryId() == null) {
+            if (update.getCategoryId() == null) {
                 errors.add("[Error] Category ID is required (at index " + i + ").");
                 continue;
             }
 
-            List<UpdateAdminChallengeTodoData> todoList = challenge.getNewTodoList();
-            if (todoList != null) {
-                for (int j = 0; j < todoList.size(); j++) {
-                    UpdateAdminChallengeTodoData todo = todoList.get(j);
+            // 2. check challenge field
+            if(update.getNewChallengeTitle() != null ||
+                    update.getNewChallengeTerm() != null ||
+                    update.getNewChallengeDiff() != null ||
+                    update.getNewChallengeStatus() != null
+            ) {
+                isChallengeUpdateNeeded = true;
+            }
 
-                    if (todo == null) {
-                        String challengeContext = "challenge " + challenge.getChallengeId() + " at index " + i;
-                        errors.add("[Error] Todo data at index " + j + " within " + challengeContext + " is null.");
+            // 3. check todoList field
+            if(update.getNewTodoList() != null && !update.getNewTodoList().isEmpty()) {
+                List<UpdateAdminChallengeTodoData> updateTodoList = update.getNewTodoList();
+                for(int j = 0; j < updateTodoList.size(); j++) {
+                    UpdateAdminChallengeTodoData updateTodo = updateTodoList.get(j);
+
+                    if(updateTodo == null) {
+                        errors.add("[Error] ChallengeTodo data at challenge index(" + i + ") and todo index(" + j +") is null.");
                         continue;
                     }
-                    if (todo.getTodoId() == null) {
-                        String challengeContext = "challenge " + challenge.getChallengeId() + " at index " + i;
-                        errors.add("[Error] Todo ID is required (at index " + j + " within " + challengeContext + ").");
+                    if(updateTodo.getTodoId() == null) {
+                        errors.add("[Error] ChallengeTodoId at challenge index(" + i + ") and todo index(" + j +") is null.");
+                        continue;
+                    }
+                    if(updateTodo.getNewTodoOrder() != null || updateTodo.getNewTodoTitle() != null) {
+                        isTodoUpdateNeeded = true;
                     }
                 }
             }
         }
-
-        if (!errors.isEmpty()) {
+        if(!errors.isEmpty()) {
             res.setErrorCode(ErrorCode.BAD_REQUEST);
             String errorMessage = String.join("\n", errors);
             res.addMessage(errorMessage);
             logger.error("[AdminChallenge][{}] Invalid arguments detected during challenge update validation:\n{}", adminId, errorMessage);
-            return false;
+            return AdminChallengeUpdateType.INVALID;
         }
-        res.addMessage("[Success] Update challenge request is valid");
-        logger.info("[AdminChallenge][{}] Update challenge request is valid", adminId);
-        return true;
+        if(isChallengeUpdateNeeded && !isTodoUpdateNeeded) return AdminChallengeUpdateType.CHALLENGE;
+        if(!isChallengeUpdateNeeded && isTodoUpdateNeeded) return AdminChallengeUpdateType.TODO;
+        if(isChallengeUpdateNeeded && isTodoUpdateNeeded) return AdminChallengeUpdateType.ALL;
+        return AdminChallengeUpdateType.INVALID;
     }
 }

@@ -11,4 +11,5 @@ import lombok.Setter;
 @NoArgsConstructor
 public class AdminSignupReq {
     private String name;
+    private String email;
 }

@@ -39,7 +39,7 @@ public class ProjectController {
     public ResponseEntity<?> updateProject(
             @RequestBody UpdateProjectReq req
     ) {
-        UpdateProjectRes res = service.updateProjectRes(
+        UpdateProjectRes res = service.updateProjects(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                 req
         );
@@ -53,7 +53,7 @@ public class ProjectController {
     public ResponseEntity<?> completeProject(
             @RequestBody UpdateProjectReq req
     ) {
-        UpdateProjectRes res = service.updateProjectRes(
+        UpdateProjectRes res = service.updateProjects(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                 req
         );

@@ -1,6 +1,6 @@
 package com.devcrew1os.service.admin.category;
 
-import com.devcrew1os.common.enums.AdminStatus;
+import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.category.*;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +26,7 @@ public class AdminCategoryService {
         GetAdminCategoryRes res = new GetAdminCategoryRes(false, "[Info] Get admin categories initiated", ErrorCode.OK);
 
         try {
-            List<GetAdminCategoryData> data = transaction.getCategoryProcess(adminId);
+            List<GetAdminCategoryData> data = transaction.getCategoryProcess();
             res.setData(data);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully fetch categories");
@@ -62,16 +62,10 @@ public class AdminCategoryService {
             logger.info("[AdminCategory][{}] Set categories finished", adminId);
             return res;
 
-        } catch(RuntimeException err) {
-            res.setErrorCode(ErrorCode.USER_NOT_FOUND);
-            res.addMessage("[Failed] AdminUser not found");
-            logger.error("[AdminCategory][{}] Request admin not found: {}", adminId, err.getMessage());
-            return res;
-
         } catch(Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Failed to save new category data.");
-            logger.error("[AdminCategory][{}] Set category process failed: {}", adminId, err.getMessage());
+            logger.error("[AdminCategory][{}] Set new category failed: {}", adminId, err.getMessage());
             return res;
         }
     }
@@ -135,7 +129,7 @@ public class AdminCategoryService {
             if (data.getCategoryId() == null) {
                 errors.add("[Failed] Updated categoryId must not be null");
             }
-            if (data.getCategoryStatus() == null || !AdminStatus.isValidValue(data.getCategoryStatus())) {
+            if (data.getCategoryStatus() == null || !DataStatus.isValidValue(data.getCategoryStatus())) {
                 errors.add("[Failed] Updated category(" + data.getCategoryId() + ") status must not be null or valid");
             }
             if (data.getCategoryTitle() == null || data.getCategoryTitle().isEmpty()) {

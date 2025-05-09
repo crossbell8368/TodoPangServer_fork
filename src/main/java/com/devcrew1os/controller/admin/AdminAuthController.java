@@ -5,8 +5,9 @@ import com.devcrew1os.dto.admin.auth.AdminLoginRes;
 import com.devcrew1os.dto.admin.auth.AdminSignupReq;
 import com.devcrew1os.dto.admin.auth.AdminSignupRes;
 import com.devcrew1os.dto.admin.auth.AdminWithdrawRes;
+import com.devcrew1os.dto.main.auth.LoginDTO;
 import com.devcrew1os.service.admin.auth.AdminAuthService;
-import com.devcrew1os.service.util.TokenService;
+import com.devcrew1os.common.util.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,7 +42,8 @@ public class AdminAuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(){
         AdminLoginRes res = authService.login(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                (LoginDTO) SecurityContextHolder.getContext().getAuthentication().getDetails()
         );
         return response.handleResult(res);
     }

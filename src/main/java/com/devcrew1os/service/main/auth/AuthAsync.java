@@ -1,14 +1,12 @@
 package com.devcrew1os.service.main.auth;
 
-import com.devcrew1os.entity.log.UserWithdrawLog;
-import com.devcrew1os.entity.main.user.UserInfo;
+import com.devcrew1os.entity.user.Users;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -30,10 +28,9 @@ public class AuthAsync {
     }
 
     @Async
-    public CompletableFuture<Boolean> isUserDeletedFromDatabase(UserInfo user, UserWithdrawLog reason, StringBuilder msg) {
+    public CompletableFuture<Boolean> isUserDeletedFromDatabase(Users user, StringBuilder msg) {
         try {
-            LocalDateTime now = LocalDateTime.now();
-            transaction.updateWithdrawData(user, reason);
+            transaction.updateWithdrawData(user);
             msg.append("[Success] User deleted from database");
             return CompletableFuture.completedFuture(true);
         } catch (Exception err) {

@@ -1,6 +1,6 @@
 package com.devcrew1os.dto.main.project;
 
-import com.devcrew1os.entity.main.project.ProjectTodo;
+import com.devcrew1os.entity.project.ProjectTodo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 

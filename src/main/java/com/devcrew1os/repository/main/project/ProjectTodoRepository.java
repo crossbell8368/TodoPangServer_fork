@@ -1,21 +1,34 @@
 package com.devcrew1os.repository.main.project;
 
-import com.devcrew1os.entity.main.project.ProjectTodo;
+import com.devcrew1os.dto.main.project.GetProjectTodoDTO;
+import com.devcrew1os.entity.project.ProjectTodo;
+import com.devcrew1os.repository.main.projection.ProjectTodoProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @Repository
 public interface ProjectTodoRepository extends JpaRepository<ProjectTodo, Integer> {
-    List<ProjectTodo> findAllByProjectId(int projectId);
-    List<ProjectTodo> findAllByProjectIdAndIdIn(Integer projectId, Set<Integer> ids);
 
-    List<ProjectTodo> findAllByProjectIdAndProjectTodoIdIn(int projectId, Set<Integer> projectTodoIds);
+    List<ProjectTodo> findAllByProject_Id(int projectId);
+
+    @Query("SELECT pt FROM ProjectTodo pt WHERE pt.project.id = :projectId AND pt.status <> :status")
+    List<ProjectTodo> findAllByProjectIdWithStatus(@Param("projectId") int projectId, @Param("status") int status);
+
+    @Query("SELECT pt FROM ProjectTodo pt WHERE pt.project.id = :projectId AND pt.challenge.id = :challengeId")
+    List<ProjectTodo> findAllByProjectIdAndChallengeId(@Param("projectId") int projectId, @Param("challengeId") int challengeId);
+
+    @Query("SELECT pt.id as id, pt.status as status, pt.challenge.id as challengeId, pt.todo as todo " +
+            "FROM ProjectTodo pt JOIN pt.todo t " + // 일반 JOIN 사용 가능
+            "WHERE pt.project.id = :projectId " +
+            "AND pt.status <> :status")
+    List<ProjectTodoProjection> findAllDataByProjectId(@Param("projectId") int projectId, @Param("status") int status);
+
+    @Query("SELECT pt FROM ProjectTodo pt WHERE pt.project.id = :projectId AND pt.todo.id IN :todoIds AND pt.status <> :status")
+    List<ProjectTodo> findAllByProjectAndTodoIdInWithStatus(@Param("projectId") int projectId, @Param("todoIds") Set<Integer> todoIds, @Param("status") int status);
 }

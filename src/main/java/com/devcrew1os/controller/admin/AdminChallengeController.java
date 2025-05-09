@@ -24,7 +24,7 @@ public class AdminChallengeController {
     ===========================*/
     @GetMapping("/list")
     public ResponseEntity<?> getChallenges(
-            @PageableDefault(page = 1, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(page = 0, size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable
     ) {
         GetAdminChallengeRes res = service.getAdminChallenges(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
