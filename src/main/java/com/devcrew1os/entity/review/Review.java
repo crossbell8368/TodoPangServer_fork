@@ -24,8 +24,8 @@ public class Review {
     @Column(name = "review_title", nullable = false, length = 255)
     private String title;
 
-    @Column(name = "review_desc", nullable = false, columnDefinition = "TEXT")
-    private String desc;
+    @Column(name = "review_emoji", nullable = false, columnDefinition = "TEXT")
+    private int emoji;
 
     @Column(name = "review_status", nullable = false)
     private int status;

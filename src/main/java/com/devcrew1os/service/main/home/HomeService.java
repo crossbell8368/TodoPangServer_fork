@@ -37,11 +37,13 @@ public class HomeService {
         } catch(RuntimeException err) {
             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
             res.addMessage("[Failed] Home related data not found: " + err.getMessage());
+            logger.error("[HomeService][{}] {}", userId, err.getMessage());
             return res;
 
         } catch(Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Error detected while getting home data");
+            logger.error("[HomeService][{}] {}", userId, err.getMessage());
             return res;
         }
     }

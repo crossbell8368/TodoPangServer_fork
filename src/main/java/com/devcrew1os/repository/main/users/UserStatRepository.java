@@ -14,8 +14,6 @@ import java.util.Optional;
 public interface UserStatRepository extends JpaRepository<UserStat, String> {
     Optional<UserStat> findByUserId(String userId);
 
-    boolean existsByUserId(String userId);
-
     @Modifying
     @Query("UPDATE UserStat us SET us.serviceTerm = us.serviceTerm + 1, us.lastLoginAt = :current WHERE us.userId = :userId")
     void updateTermAndLastLogin(@Param("userId") String userId, @Param("current")LocalDateTime current);
@@ -27,4 +25,8 @@ public interface UserStatRepository extends JpaRepository<UserStat, String> {
     @Modifying
     @Query("UPDATE UserStat us SET us.completedChallenges = us.completedChallenges + 1 WHERE us.userId = :userId")
     void updateCompleteChallenges(@Param("userId") String userId);
+
+    @Modifying
+    @Query("UPDATE UserStat us SET us.registeredReviews = us.registeredReviews + 1 WHERE us.userId = :userId")
+    void updateRegisteredReview(@Param("userId") String userId);
 }

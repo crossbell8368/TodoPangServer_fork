@@ -19,5 +19,15 @@ public interface ChallengeStatRepository extends JpaRepository<ChallengeStat, In
 
     @Modifying
     @Query("UPDATE ChallengeStat cs SET cs.participateUserCount = cs.participateUserCount + 1 WHERE cs.id = :challengeId")
-    int updatePopularity(@Param("challengeId") Integer challengeId);
+    void updatePopularity(@Param("challengeId") Integer challengeId);
+
+    @Modifying
+    @Query("UPDATE ChallengeStat cs SET cs.averageSatisfactionRatio = " +
+                    "(COALESCE(cs.averageSatisfactionRatio, 0.0) * cs.registeredReviewCount + :newScore) / (cs.registeredReviewCount + 1), " +
+                    "cs.registeredReviewCount = cs.registeredReviewCount + 1 " +
+                    "WHERE cs.id = :challengeId")
+    void updateSatisfactionAndReviewCount(
+            @Param("challengeId") int challengeId,
+            @Param("newScore") float newScore
+    );
 }

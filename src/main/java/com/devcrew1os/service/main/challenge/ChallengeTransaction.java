@@ -105,8 +105,8 @@ public class ChallengeTransaction {
         }
         List<ChallengeReviewData> reviews = reviewList.stream()
                 .map(review -> new ChallengeReviewData(
-                        review.getId(),
-                        review.getReview().getDesc(),
+                        review.getReview().getId(),
+                        review.getReview().getTitle(),
                         review.getUserSelectedCount()))
                 .collect(Collectors.toList());
 

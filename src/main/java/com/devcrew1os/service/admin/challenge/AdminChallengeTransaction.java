@@ -9,11 +9,15 @@ import com.devcrew1os.entity.challenge.Category;
 import com.devcrew1os.entity.challenge.Challenge;
 import com.devcrew1os.entity.challenge.ChallengeStat;
 import com.devcrew1os.entity.challenge.Todo;
+import com.devcrew1os.entity.review.Review;
+import com.devcrew1os.entity.review.ReviewChallenge;
 import com.devcrew1os.repository.admin.AdminUserRepository;
 import com.devcrew1os.repository.main.challenge.CategoryRepository;
 import com.devcrew1os.repository.main.challenge.ChallengeRepository;
 import com.devcrew1os.repository.main.challenge.ChallengeStatRepository;
 import com.devcrew1os.repository.main.challenge.TodoRepository;
+import com.devcrew1os.repository.main.review.ReviewChallengeRepository;
+import com.devcrew1os.repository.main.review.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +37,8 @@ import java.util.stream.Collectors;
 public class AdminChallengeTransaction {
 
     private final AdminUserRepository adminRepo;
+    private final ReviewRepository reviewRepo;
+    private final ReviewChallengeRepository reviewChallengeRepo;
 
     private final CategoryRepository categoryRepo;
     private final ChallengeRepository challengeRepo;
@@ -144,6 +150,17 @@ public class AdminChallengeTransaction {
 
         ChallengeStat stat = structChallengeStat(req, managedChallenge, now);
         challengeStatRepo.save(stat);
+
+        // 3. set review
+        List<Review> reviewList = reviewRepo.findAllByStatus(DataStatus.DEPLOYED.getValue());
+        List<ReviewChallenge> reviewChallengeList = reviewList.stream()
+                .map(rv -> ReviewChallenge.builder()
+                        .review(rv)
+                        .challenge(managedChallenge)
+                        .userSelectedCount(0)
+                        .build())
+                .collect(Collectors.toList());
+        reviewChallengeRepo.saveAll(reviewChallengeList);
 
         // 3. set todoList
         if(!req.getTodoList().isEmpty()) {

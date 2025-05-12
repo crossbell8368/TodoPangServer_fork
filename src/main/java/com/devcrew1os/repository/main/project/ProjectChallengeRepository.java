@@ -16,6 +16,18 @@ public interface ProjectChallengeRepository extends JpaRepository<ProjectChallen
 
     @Query("SELECT count(pc) > 0 " +
             "FROM ProjectChallenge pc " +
+            "JOIN pc.project p " +
+            "WHERE p.users.userId = :userId " +
+            "AND pc.challenge.id = :challengeId " +
+            "AND pc.status = :status")
+    boolean existsByUserIdAndChallengeIdAndStatus(
+            @Param("userId") String userId,
+            @Param("challengeId") int challengeId,
+            @Param("status") int status
+    );
+
+    @Query("SELECT count(pc) > 0 " +
+            "FROM ProjectChallenge pc " +
             "WHERE pc.project.id = :projectId " +
             "AND pc.challenge.id = :challengeId " +
             "AND pc.status = :status")
@@ -28,7 +40,9 @@ public interface ProjectChallengeRepository extends JpaRepository<ProjectChallen
     @Query("SELECT count(pc) < 10 " +
             "FROM ProjectChallenge pc " +
             "WHERE pc.project.id = :projectId")
-    boolean checkProjectChallengeLimit(@Param("projectId") int projectId);
+    boolean checkProjectChallengeLimit(
+            @Param("projectId") int projectId
+    );
 
     @Query("SELECT pc FROM ProjectChallenge pc JOIN FETCH pc.challenge WHERE pc.project.id = :projectId")
     List<ProjectChallenge> findAllByProjectIdWithChallenge(@Param("projectId") int projectId);
@@ -36,7 +50,9 @@ public interface ProjectChallengeRepository extends JpaRepository<ProjectChallen
     @Query("SELECT pc.id as id, pc.status as status, pc.challenge as challenge " +
             "FROM ProjectChallenge pc JOIN pc.challenge ch " +
             "WHERE pc.project.id = :projectId " +
-            "AND pc.status = :status"
-    )
-    List<ProjectChallengeProjection> findAllDataByProjectId(@Param("projectId") int projectId, @Param("status") int status);
+            "AND pc.status = :status")
+    List<ProjectChallengeProjection> findAllDataByProjectId(
+            @Param("projectId") int projectId,
+            @Param("status") int status
+    );
 }
