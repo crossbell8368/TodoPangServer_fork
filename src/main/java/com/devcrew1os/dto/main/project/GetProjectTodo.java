@@ -10,7 +10,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class GetProjectTodo {
-    private int challengeId;
     private int todoId;
     private String title;
     private int status;

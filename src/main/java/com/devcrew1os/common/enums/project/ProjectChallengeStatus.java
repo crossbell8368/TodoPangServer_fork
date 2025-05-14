@@ -13,7 +13,8 @@ import java.util.stream.Stream;
 public enum ProjectChallengeStatus {
 
     ONGOING(1),
-    FINISHED(2);
+    FINISHED(2),
+    REMOVED(3);
 
     private final int value;
 

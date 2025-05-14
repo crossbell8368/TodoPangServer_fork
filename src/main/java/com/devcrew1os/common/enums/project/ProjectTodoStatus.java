@@ -13,7 +13,8 @@ public enum ProjectTodoStatus {
 
     CHECK(1),
     UNCHECK(2),
-    COMPLETE(3);
+    COMPLETE(3),
+    REMOVED(4);
 
     private final int value;
 

@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -42,6 +44,16 @@ public interface ProjectChallengeRepository extends JpaRepository<ProjectChallen
             "WHERE pc.project.id = :projectId")
     boolean checkProjectChallengeLimit(
             @Param("projectId") int projectId
+    );
+
+    @Query("SELECT pc FROM ProjectChallenge pc " +
+            "WHERE pc.project.id = :projectId " +
+            "AND pc.challenge.id = :challengeId " +
+            "AND pc.status = :status")
+    Optional<ProjectChallenge> findByCriteriaAndStatus(
+            @Param("projectId") int projectId,
+            @Param("challengeId") int challengeId,
+            @Param("status") int status
     );
 
     @Query("SELECT pc FROM ProjectChallenge pc JOIN FETCH pc.challenge WHERE pc.project.id = :projectId")

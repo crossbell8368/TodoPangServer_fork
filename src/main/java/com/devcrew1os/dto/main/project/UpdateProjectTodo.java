@@ -11,6 +11,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UpdateProjectTodo {
     private Integer todoId;
-    private Integer challengeId;
     private Integer updatedStatus;
 }

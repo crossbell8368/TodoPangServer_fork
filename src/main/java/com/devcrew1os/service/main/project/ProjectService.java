@@ -104,7 +104,6 @@ public class ProjectService {
                 errors.add("[Failed] Challenge data at index(" + i + ") is null.");
                 continue;
             }
-
             // 2-1. ID value check
             Integer currentChallengeId = challenge.getChallengeId();
             if (currentChallengeId == null) {
@@ -136,9 +135,6 @@ public class ProjectService {
                     }
                     if (todo.getTodoId() == null) {
                         errors.add("[Failed] TodoId at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
-                    }
-                    if(todo.getChallengeId() == null) {
-                        errors.add("[Failed] Todo challengeId at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
                     }
                     if(todo.getUpdatedStatus() == null) {
                         errors.add("[Failed] Todo updatedStatus at index (" + j + ") within " + "challenge(" + challenge.getChallengeId() + ") at index " + i + " is null");
