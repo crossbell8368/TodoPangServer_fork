@@ -329,9 +329,6 @@ public class AdminChallengeTransaction {
             return DataResult.SUCCESSFULLY_DEPLOY;
 
         } else if(updated.getNewChallengeStatus() == DataStatus.PREPARE.getValue()) {
-            if(challenge.getStatus() == DataStatus.PREPARE.getValue()){
-                return DataResult.ALREADY_NEUTRALIZED;
-            }
             return DataResult.SUCCESSFULLY_NEUTRALIZED;
 
         } else if(updated.getNewChallengeStatus() == DataStatus.DELETE.getValue()) {

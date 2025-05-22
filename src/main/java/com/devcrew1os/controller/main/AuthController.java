@@ -2,6 +2,8 @@ package com.devcrew1os.controller.main;
 
 import com.devcrew1os.dto.Response;
 import com.devcrew1os.dto.main.auth.*;
+import com.devcrew1os.dto.main.mypage.WithdrawReq;
+import com.devcrew1os.dto.main.mypage.WithdrawRes;
 import com.devcrew1os.service.main.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,20 +39,6 @@ public class AuthController {
     public ResponseEntity<?> login() {
         LoginRes res = authService.login(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
-        );
-        return response.handleResult(res);
-    }
-
-    /*===========================
-       회원탈퇴
-    ===========================*/
-    @PostMapping("/withdraw")
-    public ResponseEntity<?> withdraw(
-            @RequestBody WithdrawReq req
-            ) {
-        WithdrawRes res = authService.withdraw(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
-                req
         );
         return response.handleResult(res);
     }

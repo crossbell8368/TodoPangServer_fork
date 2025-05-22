@@ -56,7 +56,7 @@ public class ProjectService {
         UpdateProjectRes res = new UpdateProjectRes(false, "[Info] Update project initiated", ErrorCode.OK);
         ProjectUpdateType type = ProjectUpdateType.UNKNOWN;
 
-        type = requestConfirm(userId, req, res);
+        type = identifiedUpdateType(userId, req, res);
         if(type == ProjectUpdateType.UNKNOWN || type == ProjectUpdateType.INVALID) return res;
 
         try {
@@ -80,7 +80,7 @@ public class ProjectService {
         }
     }
 
-    private ProjectUpdateType requestConfirm(String userId, UpdateProjectReq req, UpdateProjectRes res) {
+    private ProjectUpdateType identifiedUpdateType(String userId, UpdateProjectReq req, UpdateProjectRes res) {
         ProjectUpdateType determinedRequestType = ProjectUpdateType.UNKNOWN;
         List<String> errors = new ArrayList<>();
         boolean isTypeDetermined = false;

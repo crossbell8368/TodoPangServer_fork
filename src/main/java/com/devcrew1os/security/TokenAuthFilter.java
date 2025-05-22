@@ -41,6 +41,7 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         // 1. check URL
         String path = request.getRequestURI();
         boolean isAdmin = path.startsWith("/admin");
+        boolean isSignup = path.equals("/main/auth/signup");
 
         // 2. check token
         String token = header.substring(7);
@@ -56,13 +57,12 @@ public class TokenAuthFilter extends OncePerRequestFilter {
             setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Failed]Invalid or expired token");
             return;
         }
-        if(!isAdmin){
+        if(!isAdmin && !isSignup) {
             if(!userRepo.existsUsersByUserId(dto.getUid())) {
                 setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Failed]Invalid userId");
                 return;
             }
         }
-
 
         // 4-1. save context
         String role = isAdmin ? "ROLE_ADMIN" : "ROLE_USER";

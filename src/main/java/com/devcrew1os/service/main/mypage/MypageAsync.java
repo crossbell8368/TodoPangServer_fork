@@ -1,4 +1,4 @@
-package com.devcrew1os.service.main.auth;
+package com.devcrew1os.service.main.mypage;
 
 import com.devcrew1os.entity.user.Users;
 import com.google.firebase.auth.FirebaseAuth;
@@ -11,9 +11,9 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
-public class AuthAsync {
+public class MypageAsync {
 
-    private final AuthTransaction transaction;
+    private final MypageTransaction transaction;
 
     @Async
     public CompletableFuture<Boolean> isUserDeletedFromFirebase(String userId, StringBuilder msg) {

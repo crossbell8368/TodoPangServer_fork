@@ -77,21 +77,5 @@ public class AuthTransaction {
         userStatRepo.updateTermAndLastLogin(userId, now);
     }
 
-    /*===========================
-       회원탈퇴
-    ===========================*/
-    public Users getUsersByUserId(String userId) {
-        return usersRepo.findByUserId(userId).orElseThrow(
-                () -> new RuntimeException("Users not found: " + userId)
-        );
-    }
 
-    @Transactional
-    public void updateWithdrawData(Users user) {
-        try {
-            usersRepo.save(user);
-        } catch (Exception err) {
-            throw new RuntimeException("Withdraw transaction failed, initiate rolling back: " + err.getMessage(), err);
-        }
-    }
 }

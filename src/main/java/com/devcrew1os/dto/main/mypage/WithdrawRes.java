@@ -1,4 +1,4 @@
-package com.devcrew1os.dto.main.auth;
+package com.devcrew1os.dto.main.mypage;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.BaseResponse;

@@ -59,8 +59,4 @@ public class ProjectController {
         );
         return response.handleResult(res);
     }
-
-    /*===========================
-       목표 삭제
-    ===========================*/
 }
