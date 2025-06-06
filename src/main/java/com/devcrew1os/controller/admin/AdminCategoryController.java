@@ -30,6 +30,9 @@ public class AdminCategoryController {
         return response.handleResult(res);
     }
 
+    /*===========================
+       카테고리 추가
+    ===========================*/
     @PostMapping("/add")
     public ResponseEntity<?> addCategory(
             @RequestBody SetAdminCategoryReq req
@@ -41,6 +44,9 @@ public class AdminCategoryController {
         return response.handleResult(res);
     }
 
+    /*===========================
+       카테고리 업데이트
+    ===========================*/
     @PostMapping("/update")
     public ResponseEntity<?> updateCategory(
             @RequestBody UpdateAdminCategoryReq req

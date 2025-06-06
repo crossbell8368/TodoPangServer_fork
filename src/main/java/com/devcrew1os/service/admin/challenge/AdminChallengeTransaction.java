@@ -3,21 +3,23 @@ package com.devcrew1os.service.admin.challenge;
 import com.devcrew1os.common.enums.DataResult;
 import com.devcrew1os.common.enums.admin.AdminChallengeUpdateType;
 import com.devcrew1os.common.enums.DataStatus;
+import com.devcrew1os.common.enums.users.UserRole;
+import com.devcrew1os.common.enums.users.UserStatus;
 import com.devcrew1os.dto.admin.challenge.*;
-import com.devcrew1os.entity.admin.AdminUser;
 import com.devcrew1os.entity.challenge.Category;
 import com.devcrew1os.entity.challenge.Challenge;
 import com.devcrew1os.entity.challenge.ChallengeStat;
 import com.devcrew1os.entity.challenge.Todo;
 import com.devcrew1os.entity.review.Review;
 import com.devcrew1os.entity.review.ReviewChallenge;
-import com.devcrew1os.repository.admin.AdminUserRepository;
-import com.devcrew1os.repository.main.challenge.CategoryRepository;
-import com.devcrew1os.repository.main.challenge.ChallengeRepository;
-import com.devcrew1os.repository.main.challenge.ChallengeStatRepository;
-import com.devcrew1os.repository.main.challenge.TodoRepository;
-import com.devcrew1os.repository.main.review.ReviewChallengeRepository;
-import com.devcrew1os.repository.main.review.ReviewRepository;
+import com.devcrew1os.entity.user.Users;
+import com.devcrew1os.repository.challenge.CategoryRepository;
+import com.devcrew1os.repository.challenge.ChallengeRepository;
+import com.devcrew1os.repository.challenge.ChallengeStatRepository;
+import com.devcrew1os.repository.challenge.TodoRepository;
+import com.devcrew1os.repository.review.ReviewChallengeRepository;
+import com.devcrew1os.repository.review.ReviewRepository;
+import com.devcrew1os.repository.users.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +38,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AdminChallengeTransaction {
 
-    private final AdminUserRepository adminRepo;
+    private final UsersRepository usersRepo;
     private final ReviewRepository reviewRepo;
-    private final ReviewChallengeRepository reviewChallengeRepo;
-
     private final CategoryRepository categoryRepo;
     private final ChallengeRepository challengeRepo;
     private final ChallengeStatRepository challengeStatRepo;
+    private final ReviewChallengeRepository reviewChallengeRepo;
     private final TodoRepository todoRepo;
 
     private static final Logger logger = LoggerFactory.getLogger(AdminChallengeTransaction.class);
@@ -91,15 +92,15 @@ public class AdminChallengeTransaction {
                 .map(Challenge::getUpdatedBy)
                 .distinct()
                 .collect(Collectors.toList());
-        List<AdminUser> adminList = adminRepo.findAllByUserIdIn(challengeUpdateByList);
+        List<Users> adminList = usersRepo.findAllByUserIdAndRoleAndStatus(challengeUpdateByList, UserRole.ADMIN.getValue(), UserStatus.ACTIVE.getValue());
 
         if (adminList.size() != challengeUpdateByList.size()) {
-            Set<String> foundAdminIds = adminList.stream().map(AdminUser::getUserId).collect(Collectors.toSet());
+            Set<String> foundAdminIds = adminList.stream().map(Users::getUserId).collect(Collectors.toSet());
             List<String> missingAdminIds = challengeUpdateByList.stream().filter(id -> !foundAdminIds.contains(id)).collect(Collectors.toList());
             logger.warn("[AdminChallenge] Unidentified adminId detected: {}", missingAdminIds);
         }
         return adminList.stream()
-                .collect(Collectors.toMap(AdminUser::getUserId, AdminUser::getName));
+                .collect(Collectors.toMap(Users::getUserId, Users::getUserName));
     }
 
     private Map<Integer, List<GetAdminChallengeTodoData>> getTodoData(List<Challenge> challengeList, Map<String, String> updateByMap) {
@@ -107,7 +108,7 @@ public class AdminChallengeTransaction {
         Set<Integer> challengeIdSet = challengeList.stream()
                 .map(Challenge::getId)
                 .collect(Collectors.toSet());
-        List<Todo> allTodoList = todoRepo.findAllWithChallengeIds(challengeIdSet);
+        List<Todo> allTodoList = todoRepo.findAllWithChallengeIds(challengeIdSet, DataStatus.DELETE.getValue());
         Map<Integer, List<Todo>> todosGroupByChallenge = allTodoList.stream()
                 .collect(Collectors.groupingBy(todo -> todo.getChallenge().getId()));
 
@@ -210,6 +211,39 @@ public class AdminChallengeTransaction {
     }
 
     /*===========================
+       할 일 등록
+    ===========================*/
+    @Transactional
+    public void addTodoProcess(String adminId, UpdateAdminChallengeReq req) {
+        for(UpdateAdminChallengeData dto : req.getUpdatedChallenges()){
+            Optional<Challenge> challengeOpt = challengeRepo.findChallengeByIdWithStat(dto.getChallengeId(), DataStatus.DELETE.getValue());
+
+            if(challengeOpt.isEmpty()){
+                throw new RuntimeException("Challenge not found: " + dto.getChallengeId());
+            } else {
+                Challenge challenge = challengeOpt.get();
+                todoRepo.saveAll(structAddTodo(adminId, challenge, dto.getNewTodoList(), LocalDateTime.now()));
+            }
+        }
+    }
+
+    private List<Todo> structAddTodo(String adminId, Challenge challenge, List<UpdateAdminChallengeTodoData> todoList, LocalDateTime now) {
+        List<Todo> entityList = new ArrayList<>();
+        for(UpdateAdminChallengeTodoData dto : todoList) {
+            entityList.add(Todo.builder()
+                    .challenge(challenge)
+                    .order(dto.getNewTodoOrder())
+                    .desc(dto.getNewTodoTitle())
+                    .status(DataStatus.PREPARE.getValue())
+                    .updatedAt(now)
+                    .updatedBy(adminId)
+                    .build()
+            );
+        }
+        return entityList;
+    }
+
+    /*===========================
        도전과제 업데이트
     ===========================*/
     @Transactional
@@ -272,18 +306,22 @@ public class AdminChallengeTransaction {
                                          Map<Integer, Category> categoryMap,
                                          LocalDateTime now) {
         boolean isUpdated = false;
+        // title
         if(dto.getNewChallengeTitle() != null){
             entity.setTitle(dto.getNewChallengeTitle());
             isUpdated = true;
         }
+        // term
         if(dto.getNewChallengeTerm() != null) {
             entity.setTerm(dto.getNewChallengeTerm());
             isUpdated = true;
         }
+        // diff
         if(dto.getNewChallengeDiff() != null) {
             entity.setDiff(dto.getNewChallengeDiff());
             isUpdated = true;
         }
+        // status
         if(dto.getNewChallengeStatus() != null) {
             DataResult res = updateChallengeStatus(entity, dto);
             if(res.isSuccess()){
@@ -294,14 +332,15 @@ public class AdminChallengeTransaction {
                 throw new RuntimeException("Challenge status update failed: " + res.getDesc() + " at challenge: " + entity.getId());
             }
         }
+        // category
         if(entity.getStatus() == DataStatus.PREPARE.getValue() &&
                 !dto.getCategoryId().equals(entity.getCategory().getId())
         ) {
             Category newCategory = categoryMap.get(dto.getCategoryId());
             entity.setCategory(newCategory);
             isUpdated = true;
-        } else if(!dto.getCategoryId().equals(entity.getCategory().getId())){
-            throw new RuntimeException("Challenge category update failed, because of challenge status: " + entity.getStatus() + "or same category request: " + entity.getCategory().getId() + " / " + dto.getCategoryId());
+        } else if(entity.getStatus() != DataStatus.PREPARE.getValue()){
+            throw new RuntimeException("Challenge category update failed, because of challenge status: " + entity.getStatus() + " or same category request: " + entity.getCategory().getId() + " / " + dto.getCategoryId());
         }
         if(isUpdated){
             entity.setUpdatedAt(now);
@@ -365,7 +404,7 @@ public class AdminChallengeTransaction {
             return;
         }
         Set<Integer> uniqueTodoIds = todoDtoMap.keySet();
-        List<Todo> todoList = todoRepo.findAllById(uniqueTodoIds);
+        List<Todo> todoList = todoRepo.findAllByIdIn(uniqueTodoIds, DataStatus.DELETE.getValue());
 
         // 2. validate data
         if (todoList.size() != uniqueTodoIds.size()) {
@@ -403,14 +442,17 @@ public class AdminChallengeTransaction {
             entity.setDesc(dto.getNewTodoTitle());
             isUpdated = true;
         }
+        if(dto.getNewTodoStatus() != null) {
+            entity.setStatus(dto.getNewTodoStatus());
+            if(dto.getNewTodoStatus() == DataStatus.DELETE.getValue()){
+                challengeStatRepo.updateTotalRegisteredTodos(entity.getChallenge().getId());
+            }
+            isUpdated = true;
+        }
         if(isUpdated){
             entity.setUpdatedAt(now);
             entity.setUpdatedBy(adminId);
         }
         return isUpdated;
     }
-
-    /*===========================
-       도전과제 업로드
-    ===========================*/
 }

@@ -11,6 +11,7 @@ public enum DataResult {
     NOT_PREPARED("Request data is not prepared"),
     ALREADY_DEPLOYED("Request data already deployed"),
     ALREADY_NEUTRALIZED("Request data already neutralized"),
+    ALREADY_DELETED("Request data already deleted"),
     CATEGORY_NOT_DEPLOYED("Category not deployed"),
     INCOMPLETE_DATA("Incomplete data"),
     SUCCESSFULLY_DEPLOY("Successfully deployed"),

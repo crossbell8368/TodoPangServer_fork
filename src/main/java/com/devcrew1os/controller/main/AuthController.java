@@ -26,8 +26,7 @@ public class AuthController {
             @RequestBody SignupReq req
     ) {
         SignupRes res = authService.signup(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
-                req
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req, false
         );
         return response.handleResult(res);
     }
@@ -39,6 +38,20 @@ public class AuthController {
     public ResponseEntity<?> login() {
         LoginRes res = authService.login(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+        );
+        return response.handleResult(res);
+    }
+
+    /*===========================
+       로그아웃
+    ===========================*/
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(
+            @RequestHeader("Authorization") String header
+    ) {
+        LogoutRes res = authService.logout(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                header
         );
         return response.handleResult(res);
     }

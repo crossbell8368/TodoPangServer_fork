@@ -1,15 +1,16 @@
 package com.devcrew1os.controller.admin;
 
 import com.devcrew1os.dto.Response;
-import com.devcrew1os.dto.admin.auth.AdminLoginRes;
-import com.devcrew1os.dto.admin.auth.AdminSignupReq;
-import com.devcrew1os.dto.admin.auth.AdminSignupRes;
-import com.devcrew1os.dto.admin.auth.AdminWithdrawRes;
-import com.devcrew1os.dto.main.auth.LoginDTO;
-import com.devcrew1os.service.admin.auth.AdminAuthService;
-import com.devcrew1os.common.util.TokenService;
+
+import com.devcrew1os.dto.main.auth.LoginRes;
+import com.devcrew1os.dto.main.auth.LogoutRes;
+import com.devcrew1os.dto.main.auth.SignupReq;
+import com.devcrew1os.dto.main.auth.SignupRes;
+import com.devcrew1os.dto.main.mypage.WithdrawReq;
+import com.devcrew1os.dto.main.mypage.WithdrawRes;
+import com.devcrew1os.service.main.auth.AuthService;
+import com.devcrew1os.service.main.mypage.MypageService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -20,18 +21,18 @@ import org.springframework.web.bind.annotation.*;
 public class AdminAuthController {
 
     private final Response<?> response;
-    private final AdminAuthService authService;
-    private final TokenService tokenService;
+    private final AuthService authService;
+    private final MypageService mypageService;
 
     /*===========================
-       회원가입
+       회원가입: Postman Only
     ===========================*/
     @PostMapping("/signup")
     public ResponseEntity<?> signup(
-            @RequestBody AdminSignupReq req
+            @RequestBody SignupReq req
     ) {
-        AdminSignupRes res = authService.signup(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
+        SignupRes res = authService.signup(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req, true
         );
         return response.handleResult(res);
     }
@@ -41,9 +42,8 @@ public class AdminAuthController {
     ===========================*/
     @PostMapping("/login")
     public ResponseEntity<?> login(){
-        AdminLoginRes res = authService.login(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
-                (LoginDTO) SecurityContextHolder.getContext().getAuthentication().getDetails()
+        LoginRes res = authService.login(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
         );
         return response.handleResult(res);
     }
@@ -55,35 +55,22 @@ public class AdminAuthController {
     public ResponseEntity<?> logout(
             @RequestHeader("Authorization") String header
     ){
-        if(header == null || !header.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().body(
-                    new Response.Body<>(
-                            HttpStatus.BAD_REQUEST.value(),
-                            Response.ResponseResult.FAIL,
-                            "[Failed] No token",
-                            Boolean.FALSE
-                    )
-            );
-        }
-        String token = header.substring(7);
-        tokenService.tokenCleaner(token);
-        return ResponseEntity.ok().body(
-                new Response.Body<>(
-                        HttpStatus.OK.value(),
-                        Response.ResponseResult.SUCCESS,
-                        "[Success] Logout finish",
-                        Boolean.TRUE
-                )
+        LogoutRes res = authService.logout(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), header
         );
+        return response.handleResult(res);
     }
 
     /*===========================
        회원탈퇴
     ===========================*/
     @PostMapping("/withdraw")
-    public ResponseEntity<?> withdraw(){
-        AdminWithdrawRes res = authService.withdraw(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal()
+    public ResponseEntity<?> withdraw(
+            @RequestBody WithdrawReq req
+    ){
+        WithdrawRes res = mypageService.withdraw(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
+                req
         );
         return response.handleResult(res);
     }

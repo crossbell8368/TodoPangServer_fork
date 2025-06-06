@@ -20,7 +20,6 @@ public enum DataStatus {
     private static final Map<Integer, DataStatus> VALUE_MAP = Stream.of(
             DataStatus.values()).collect(Collectors.toMap(type -> type.value, type -> type)
     );
-
     public static DataStatus fromValue(int value) {
         return VALUE_MAP.get(value);
     }

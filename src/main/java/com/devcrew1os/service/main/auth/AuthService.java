@@ -2,6 +2,7 @@ package com.devcrew1os.service.main.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.users.UserSocialType;
+import com.devcrew1os.common.util.TokenService;
 import com.devcrew1os.dto.main.auth.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final TokenService tokenService;
     private final AuthTransaction transaction;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
@@ -22,14 +24,14 @@ public class AuthService {
     /*===========================
        사용자 회원가입
     ===========================*/
-    public SignupRes signup(String userId, SignupReq req) {
+    public SignupRes signup(String userId, SignupReq req, boolean isAdminReq) {
         SignupRes res = new SignupRes(false, "[Info] Signup initiated", ErrorCode.OK);
 
         // 1. 입력값 검증
         if(!isRequestValid(userId, req, res)) return res;
 
         try {
-            transaction.signupProcess(userId, req);
+            transaction.signupProcess(userId, req, isAdminReq);
             res.setSuccess(true);
             res.addMessage("[Info] Signup finish");
             logger.info("[AuthService][{}] Signup successful", userId);
@@ -96,6 +98,52 @@ public class AuthService {
             res.addMessage("[Failed] Failed to update stat data");
             logger.error("[AuthService][{}] Failed to update stat data for user: {}", userId, err.getMessage());
             return res;
+        }
+    }
+
+    /*===========================
+       사용자 로그아웃
+    ===========================*/
+    public LogoutRes logout(String userId, String idToken) {
+        LogoutRes res =  new LogoutRes(false, "[Info] Logout initiated", ErrorCode.OK);
+
+        // 1. extract token
+        String token = extractToken(idToken);
+        if(token == null){
+            res.setErrorCode(ErrorCode.BAD_REQUEST);
+            res.addMessage("[Failed] Logout failed at extract token");
+            logger.error("[AuthService][{}] Error extract token from header during logout", userId);
+            return res;
+        }
+        // 2, cleaning redis
+        try {
+            tokenService.tokenCleaner(idToken);
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            res.addMessage("[Failed] Logout failed at token cleaner");
+            logger.error("[AuthService][{}] Error cleaning token from Redis during logout: {}", userId, err.getMessage());
+            return res;
+        }
+        // 3. record db
+        try {
+            transaction.logoutProcess(userId);
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.DATABASE_ERROR);
+            res.addMessage("[Failed] 'last logout at' record failed");
+            logger.error("[AuthService][{}] 'last logout at' record failed: {}", userId, err.getMessage());
+            return res;
+        }
+        res.setSuccess(true);
+        res.addMessage("[Info] Logout successful");
+        logger.info("[AuthService][{}] Logout successful", userId);
+        return res;
+    }
+
+    private String extractToken(String idToken) {
+        if(idToken == null || !idToken.startsWith("Bearer ")) {
+            return null;
+        } else {
+            return idToken.substring(7);
         }
     }
 }

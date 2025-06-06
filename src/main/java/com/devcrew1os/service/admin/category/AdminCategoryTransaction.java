@@ -2,15 +2,17 @@ package com.devcrew1os.service.admin.category;
 
 import com.devcrew1os.common.enums.DataResult;
 import com.devcrew1os.common.enums.DataStatus;
+import com.devcrew1os.common.enums.users.UserRole;
+import com.devcrew1os.common.enums.users.UserStatus;
 import com.devcrew1os.dto.admin.category.GetAdminCategoryData;
 import com.devcrew1os.dto.admin.category.SetAdminCategoryReq;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryData;
 import com.devcrew1os.dto.admin.category.UpdateAdminCategoryReq;
-import com.devcrew1os.entity.admin.AdminUser;
 import com.devcrew1os.entity.challenge.Category;
-import com.devcrew1os.repository.admin.AdminUserRepository;
-import com.devcrew1os.repository.main.challenge.CategoryRepository;
-import com.devcrew1os.repository.main.projection.CategoryProjection;
+import com.devcrew1os.entity.user.Users;
+import com.devcrew1os.repository.challenge.CategoryRepository;
+import com.devcrew1os.repository.projection.CategoryProjection;
+import com.devcrew1os.repository.users.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +28,7 @@ import java.util.stream.Collectors;
 public class AdminCategoryTransaction {
 
     private final CategoryRepository categoryRepo;
-    private final AdminUserRepository adminRepo;
+    private final UsersRepository usersRepo;
 
     private static final Logger logger = LoggerFactory.getLogger(AdminCategoryTransaction.class);
 
@@ -45,15 +47,15 @@ public class AdminCategoryTransaction {
                 .map(CategoryProjection::getUpdatedBy)
                 .distinct()
                 .collect(Collectors.toList());
-        List<AdminUser> adminList = adminRepo.findAllByUserIdIn(categoryUpdateByList);
+        List<Users> adminList = usersRepo.findAllByUserIdAndRoleAndStatus(categoryUpdateByList, UserRole.ADMIN.getValue(), UserStatus.ACTIVE.getValue());
 
         // 3. data inspection
         if (adminList.size() != categoryUpdateByList.size()) {
-            Set<String> foundAdminIds = adminList.stream().map(AdminUser::getUserId).collect(Collectors.toSet());
+            Set<String> foundAdminIds = adminList.stream().map(Users::getUserId).collect(Collectors.toSet());
             List<String> missingAdminIds = categoryUpdateByList.stream().filter(id -> !foundAdminIds.contains(id)).collect(Collectors.toList());
             logger.warn("[AdminChallenge] Unidentified adminId detected: {}", missingAdminIds);
         }
-        Map<String, String> adminMap = adminList.stream().collect(Collectors.toMap(AdminUser::getUserId, AdminUser::getName));
+        Map<String, String> adminMap = adminList.stream().collect(Collectors.toMap(Users::getUserId, Users::getUserName));
 
         // 4. assemble data
         return categoryList.stream()
@@ -158,32 +160,41 @@ public class AdminCategoryTransaction {
        카테고리 배포
     ===========================*/
     private DataResult updateCategoryStatus(Category category, UpdateAdminCategoryData updatedData) {
-        if(updatedData.getCategoryStatus() == DataStatus.DEPLOYED.getValue()){
-            if(category.getStatus() != DataStatus.PREPARE.getValue()) {
-                return DataResult.NOT_PREPARED;
-            }
-            if(category.getTitle() == null || category.getTitle().isEmpty()) {
-                return DataResult.INCOMPLETE_DATA;
-            }
-            if(categoryRepo.existsByTitleAndStatus(updatedData.getCategoryTitle(), DataStatus.DEPLOYED.getValue())) {
-                return DataResult.ALREADY_DEPLOYED;
-            }
-            return DataResult.SUCCESSFULLY_DEPLOY;
+        int currentStatus = category.getStatus();
+        int newStatusValue = updatedData.getCategoryStatus();
+        DataStatus newStatus = DataStatus.fromValue(newStatusValue);
 
-        } else if(updatedData.getCategoryStatus() == DataStatus.PREPARE.getValue()) {
-            if(category.getStatus() == DataStatus.PREPARE.getValue()){
-                return DataResult.ALREADY_NEUTRALIZED;
-            }
-            return DataResult.SUCCESSFULLY_NEUTRALIZED;
-
-        } else if(updatedData.getCategoryStatus() == DataStatus.DELETE.getValue()) {
-            if(category.getStatus() != DataStatus.PREPARE.getValue()){
-                return DataResult.NOT_PREPARED;
-            }
-            return DataResult.SUCCESSFULLY_DELETED;
-
-        } else {
+        if(newStatus == null){
             return DataResult.INVALID_STATUS;
+        }
+
+        if(currentStatus == newStatusValue){
+            switch (newStatus) {
+                case DEPLOYED:
+                    return DataResult.ALREADY_DEPLOYED;
+                case PREPARE:
+                    return DataResult.ALREADY_NEUTRALIZED;
+                case DELETE:
+                    return DataResult.ALREADY_DELETED;
+            }
+        }
+        switch (newStatus) {
+            case DEPLOYED:
+                if(currentStatus != DataStatus.PREPARE.getValue()){
+                    return DataResult.NOT_PREPARED;
+                }
+                if(categoryRepo.existsByTitleAndStatus(updatedData.getCategoryTitle(), currentStatus)){
+                    return DataResult.SUCCESSFULLY_DEPLOY;
+                }
+            case PREPARE:
+                return DataResult.SUCCESSFULLY_NEUTRALIZED;
+            case DELETE:
+                if(currentStatus != DataStatus.PREPARE.getValue()){
+                    return DataResult.NOT_PREPARED;
+                }
+                return DataResult.SUCCESSFULLY_DELETED;
+            default:
+                return DataResult.INVALID_STATUS;
         }
     }
 }

@@ -25,6 +25,9 @@ public class Users {
     @Column(name = "user_name", nullable = false)
     private String userName;
 
+    @Column(name = "user_role", nullable = false)
+    private int role;
+
     @Column(name = "user_status", nullable = false)
     private int status;
 

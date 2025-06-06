@@ -13,13 +13,16 @@ import com.devcrew1os.entity.project.ProjectChallenge;
 import com.devcrew1os.entity.project.Project;
 import com.devcrew1os.entity.log.ProjectLog;
 import com.devcrew1os.entity.project.ProjectTodo;
-import com.devcrew1os.repository.main.project.ProjectChallengeRepository;
-import com.devcrew1os.repository.main.project.ProjectRepository;
-import com.devcrew1os.repository.main.challenge.*;
-import com.devcrew1os.repository.main.project.ProjectTodoRepository;
-import com.devcrew1os.repository.main.project.ProjectLogRepository;
-import com.devcrew1os.repository.main.review.ReviewChallengeRepository;
-import com.devcrew1os.repository.main.users.UserStatRepository;
+import com.devcrew1os.repository.challenge.CategoryRepository;
+import com.devcrew1os.repository.challenge.ChallengeRepository;
+import com.devcrew1os.repository.challenge.ChallengeStatRepository;
+import com.devcrew1os.repository.challenge.TodoRepository;
+import com.devcrew1os.repository.project.ProjectChallengeRepository;
+import com.devcrew1os.repository.project.ProjectRepository;
+import com.devcrew1os.repository.project.ProjectTodoRepository;
+import com.devcrew1os.repository.project.ProjectLogRepository;
+import com.devcrew1os.repository.review.ReviewChallengeRepository;
+import com.devcrew1os.repository.users.UserStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,7 +88,7 @@ public class ChallengeTransaction {
     @Transactional(readOnly = true)
     public ChallengeDetailData getChallengeDetailProcess(int challengeId) {
         // 1. fetch data: challenge
-        Challenge challenge = challengeRepo.findChallengeById(challengeId, DataStatus.DEPLOYED.getValue()).orElseThrow(
+        Challenge challenge = challengeRepo.findChallengeByIdWithCategory(challengeId, DataStatus.DEPLOYED.getValue()).orElseThrow(
                 () -> new RuntimeException("Challenge not found: " + challengeId)
         );
 

@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class UpdateAdminChallengeTodoData {
     private Integer todoId;
     private Integer newTodoOrder;
+    private Integer newTodoStatus;
     private String newTodoTitle;
 }

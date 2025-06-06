@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 @Getter
 @RequiredArgsConstructor
 public enum UserWithdrawReason {
+    ACTIVE_USER(0),
     REASON1(1),
     REASON2(2),
     REASON3(3),

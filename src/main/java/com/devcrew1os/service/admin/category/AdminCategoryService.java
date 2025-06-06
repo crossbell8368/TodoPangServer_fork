@@ -59,7 +59,6 @@ public class AdminCategoryService {
             transaction.setCategoryProcess(adminId, req);
             res.setSuccess(true);
             res.addMessage("[Info] Set categories finished");
-            logger.info("[AdminCategory][{}] Set categories finished", adminId);
             return res;
 
         } catch(Exception err) {
@@ -89,7 +88,6 @@ public class AdminCategoryService {
             return false;
         }
         res.addMessage("[Success] Set category request is valid");
-        logger.info("[AdminCategory][{}] Valid request, at set category", adminId);
         return true;
     }
 

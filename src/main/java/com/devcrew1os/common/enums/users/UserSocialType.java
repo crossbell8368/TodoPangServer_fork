@@ -23,8 +23,4 @@ public enum UserSocialType {
     public static boolean contains(int value) {
         return VALUE_MAP.containsKey(value);
     }
-
-    public static UserSocialType fromValue(int value) {
-        return VALUE_MAP.get(value);
-    }
 }

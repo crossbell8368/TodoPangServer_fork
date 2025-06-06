@@ -46,6 +46,16 @@ public class AdminChallengeController {
         return response.handleResult(res);
     }
 
+    @PostMapping("/todo/add")
+    public ResponseEntity<?> setChallengeTodo(
+            @RequestBody UpdateAdminChallengeReq req
+    ) {
+        UpdateAdminChallengeRes res = service.addAdminChallengeTodo(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
+        );
+        return response.handleResult(res);
+    }
+
     /*===========================
        도전과제 업데이트
     ===========================*/

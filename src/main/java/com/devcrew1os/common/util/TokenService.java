@@ -1,6 +1,5 @@
 package com.devcrew1os.common.util;
 
-import com.devcrew1os.dto.main.auth.LoginDTO;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
@@ -20,32 +19,23 @@ public class TokenService {
     private static final long TOKEN_EXPIRED_TIME = 3500;
     private static final Logger logger = LoggerFactory.getLogger(TokenService.class);
 
-    public LoginDTO tokenVerifier(String idToken, boolean isAdmin) {
+    public String tokenVerifier(String idToken) {
         String redisKey = String.format("id_token:%s", idToken);
 
         // Step1. Check Redis
         String cachedId = redisTemplate.opsForValue().get(redisKey);
         if (cachedId != null) {
-            logger.info("[TokenService][{}] Successfully resolve userId from cache", cachedId);
-            return new LoginDTO(cachedId, null);
+            return cachedId;
         }
 
         // Step2. Check Firebase
         try {
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
             String userId = decodedToken.getUid();
-            String email = "";
-            if(isAdmin) {
-                email = decodedToken.getEmail();
-            }
 
             redisTemplate.opsForValue().set(redisKey, userId, TOKEN_EXPIRED_TIME, TimeUnit.SECONDS);
-            logger.info("[TokenService][{}] Firebase verified UID and cached", userId);
-            if(isAdmin){
-                return new LoginDTO(userId, email);
-            } else{
-                return new LoginDTO(userId, null);
-            }
+            return userId;
+
         } catch (FirebaseAuthException err) {
             logger.warn("[TokenService] Firebase token verification failed with provided idToken: {}", err.getMessage());
             return null;

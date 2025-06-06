@@ -15,10 +15,10 @@ import java.time.LocalDateTime;
 public class UserStat {
 
     @Id
-    @Column(name = "user_id", nullable = false, unique = true, length = 50)
     private String userId;
 
     @OneToOne
+    @MapsId
     @JoinColumn(name = "user_id")
     private Users users;
 

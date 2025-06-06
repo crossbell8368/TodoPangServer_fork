@@ -1,5 +1,6 @@
 package com.devcrew1os.service.admin.challenge;
 
+import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.common.enums.admin.AdminChallengeUpdateType;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.PageResponse;
@@ -36,7 +37,6 @@ public class AdminChallengeService {
             res.setData(pageResponse);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully retrieved challenges");
-            logger.info("[AdminCategory][{}] Successfully retrieved challenges", adminId);
             return res;
 
         } catch (RuntimeException err) {
@@ -63,10 +63,8 @@ public class AdminChallengeService {
 
         try {
             transaction.setChallengeProcess(adminId, req);
-
             res.setSuccess(true);
             res.addMessage("[Info] Successfully add challenge");
-            logger.info("[AdminChallenge][{}] Successfully add challenge", adminId);
             return res;
 
         } catch(Exception err) {
@@ -100,9 +98,83 @@ public class AdminChallengeService {
             return false;
         }
         res.addMessage("[Success] Add challenge request is valid");
-        logger.info("[AdminChallenge][{}] Add challenge request is valid", adminId);
         return true;
     }
+
+     public UpdateAdminChallengeRes addAdminChallengeTodo(String adminId, UpdateAdminChallengeReq req) {
+         UpdateAdminChallengeRes res = new UpdateAdminChallengeRes(false, "[Info] add admin todos initiated", ErrorCode.OK);
+
+         if(!isRequestValid(adminId, req, res)) return res;
+         try {
+             transaction.addTodoProcess(adminId, req);
+             res.setSuccess(true);
+             res.addMessage("[Info] Successfully add todo");
+             return res;
+
+         } catch (RuntimeException err) {
+             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
+             res.addMessage("[Failed] Admin challenges not found");
+             logger.error("[AdminChallenge][{}] Failed to found todos: {}", adminId, err.getMessage());
+             return res;
+
+         } catch (Exception err) {
+             res.setErrorCode(ErrorCode.DATABASE_ERROR);
+             res.addMessage("[Failed] Error detected while add todo");
+             logger.error("[AdminCategory][{}] Failed to add todo at challenge: {}", adminId, err.getMessage());
+             return res;
+         }
+     }
+
+     private boolean isRequestValid(String adminId, UpdateAdminChallengeReq req, UpdateAdminChallengeRes res) {
+         if(req.getUpdatedChallenges() == null || req.getUpdatedChallenges().isEmpty()) {
+             res.setErrorCode(ErrorCode.BAD_REQUEST);
+             res.addMessage("[Error] Target Challenge data required");
+             logger.error("[AdminChallenge][{}] Invalid arguments detected during add challenge todo", adminId);
+             return false;
+         }
+
+         List<UpdateAdminChallengeData> updateList = req.getUpdatedChallenges();
+         for (int i = 0; i < updateList.size(); i++) {
+             UpdateAdminChallengeData update = updateList.get(i);
+
+             // 1. check necessary field
+             if(update == null) {
+                 res.setErrorCode(ErrorCode.BAD_REQUEST);
+                 res.addMessage("[Error] Challenge entity required");
+                 logger.error("[AdminChallenge][{}] Challenge entity is null", adminId);
+                 return false;
+             }
+             if (update.getChallengeId() == null) {
+                 res.setErrorCode(ErrorCode.BAD_REQUEST);
+                 res.addMessage("[Error] Challenge ID required");
+                 logger.error("[AdminChallenge][{}] ChallengeID is null", adminId);
+                 return false;
+             }
+
+             // 2. check todoList field
+             if(update.getNewTodoList() != null && !update.getNewTodoList().isEmpty()) {
+                 List<UpdateAdminChallengeTodoData> updateTodoList = update.getNewTodoList();
+                 for(int j = 0; j < updateTodoList.size(); j++) {
+                     UpdateAdminChallengeTodoData updateTodo = updateTodoList.get(j);
+
+                     if(updateTodo == null) {
+                         res.setErrorCode(ErrorCode.BAD_REQUEST);
+                         res.addMessage("[Error] Todo entity required");
+                         logger.error("[AdminChallenge][{}] Todo entity is null", adminId);
+                         return false;
+                     }
+                     if(updateTodo.getNewTodoTitle() == null) {
+                         res.setErrorCode(ErrorCode.BAD_REQUEST);
+                         res.addMessage("[Error] Todo title required");
+                         logger.error("[AdminChallenge][{}] Todo title null", adminId);
+                         return false;
+                     }
+                 }
+             }
+         }
+         return true;
+     }
+
 
     /*===========================
        도전과제 업데이트
@@ -117,7 +189,6 @@ public class AdminChallengeService {
             transaction.updateChallengeProcess(adminId, type, req);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully update challenge");
-            logger.info("[AdminChallenge][{}] Successfully update challenge", adminId);
             return res;
 
         } catch (RuntimeException err){
@@ -186,6 +257,14 @@ public class AdminChallengeService {
                     }
                     if(updateTodo.getNewTodoOrder() != null || updateTodo.getNewTodoTitle() != null) {
                         isTodoUpdateNeeded = true;
+                    }
+                    if(updateTodo.getNewTodoStatus() != null) {
+                        if(DataStatus.isValidValue(updateTodo.getNewTodoStatus())) {
+                            isTodoUpdateNeeded = true;
+                        } else {
+                            errors.add("[Error] ChallengeTodo status at challenge index(" + i + ") and todo index(" + j +") is invalid.");
+                            continue;
+                        }
                     }
                 }
             }
