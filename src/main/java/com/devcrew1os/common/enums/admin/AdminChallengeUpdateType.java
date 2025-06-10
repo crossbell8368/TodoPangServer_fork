@@ -2,7 +2,7 @@ package com.devcrew1os.common.enums.admin;
 
 public enum AdminChallengeUpdateType {
     INVALID,
-    CHALLENGE,
-    TODO,
-    ALL
+    ADD_TODO,
+    UPDATE_TODO,
+    DELETE_TODO,
 }

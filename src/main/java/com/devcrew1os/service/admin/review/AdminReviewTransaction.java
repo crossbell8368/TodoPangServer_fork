@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -110,33 +111,24 @@ public class AdminReviewTransaction {
         List<Review> targetReviewList = reviewRepo.findAllByIdIn(targetReviewIdSet);
 
         if(targetReviewIdSet.size() != targetReviewList.size()) {
-            throw new RuntimeException("Review not matched");
+            throw new RuntimeException("Some Review for deployment not found");
         }
         // 2. assemble data: toMap
         Map<Integer, Review> targetReviewMap = targetReviewList.stream()
-                .collect(Collectors.toMap(
-                        Review::getId,
-                        review -> review
-                ));
+                .collect(Collectors.toMap(Review::getId, Function.identity()));
         LocalDateTime now = LocalDateTime.now();
 
         // 3. loop data
         for(DeployAdminReviewData newData : req.getData()) {
             Review target = targetReviewMap.get(newData.getReviewId());
             if (target == null) {
-                res.addMessage("ReviewId(" + newData.getReviewId() + ") not found in database");
-                logger.warn("ReviewId {} requested for deployment but not found.", newData.getReviewId());
-                continue;
+                logger.error("ReviewId {} requested for deployment but not found.", newData.getReviewId());
+                throw new RuntimeException("ReviewId(" + newData.getReviewId() + ") not found in database");
             }
-
             int currentStatus = target.getStatus();
             int newStatus = newData.getNewStatus();
             boolean isUpdated = false;
-
-            if (currentStatus == newStatus) {
-                res.addMessage("ReviewId(" + target.getId() + ") is already in the requested status: " + DataStatus.fromValue(newStatus).name());
-                continue;
-            }
+            if (currentStatus == newStatus) continue;
 
             switch(DataStatus.fromValue(newStatus)) {
                 case DEPLOYED:

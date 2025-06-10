@@ -94,12 +94,12 @@ public class ChallengeTransaction {
 
         // 2. fetch data: todos
         List<Todo> todoList = todoRepo.findAllByChallengeIdAndStatus(challengeId, DataStatus.DEPLOYED.getValue());
-        if(todoList.isEmpty()) {
-            throw new RuntimeException("TodoList is empty");
+        List<ChallengeTodoData> todos = new ArrayList<>();
+        if(!todoList.isEmpty()) {
+            todos = todoList.stream()
+                    .map(todo -> new ChallengeTodoData(todo.getId(), todo.getDesc()))
+                    .collect(Collectors.toList());
         }
-        List<ChallengeTodoData> todos = todoList.stream()
-                .map(todo -> new ChallengeTodoData(todo.getId(), todo.getDesc()))
-                .collect(Collectors.toList());
 
         // 2. fetch data: reviews
         List<ReviewChallenge> reviewList = reviewStatRepo.findAllByChallengeIdAndStatus(DataStatus.DEPLOYED.getValue(), challengeId);

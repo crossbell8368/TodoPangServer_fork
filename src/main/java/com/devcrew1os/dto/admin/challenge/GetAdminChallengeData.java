@@ -1,22 +1,18 @@
 package com.devcrew1os.dto.admin.challenge;
 
-import lombok.*;
+import com.devcrew1os.dto.PageResponse;
+import lombok.Getter;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 
 @Getter
-@NoArgsConstructor
-@AllArgsConstructor
 public class GetAdminChallengeData {
-    private Integer challengeId;
-    private Integer categoryId;
-    private String challengeName;
-    private Integer challengeTerm;
-    private Integer challengeDiff;
-    private Integer challengeTodoCount;
-    private Integer challengeStatus;
-    private LocalDateTime lastUpdatedAt;
-    private String lastUpdatedBy;
-    private List<GetAdminChallengeTodoData> todoList;
+
+    private final PageResponse<GetAdminChallenge> challengeData;
+    private final Map<Integer, String> categories;
+
+    public GetAdminChallengeData(PageResponse<GetAdminChallenge> challengePage, Map<Integer, String> categoryMap) {
+        this.challengeData = challengePage;
+        this.categories = categoryMap;
+    }
 }

@@ -1,13 +1,13 @@
 package com.devcrew1os.repository.projection;
 
 public interface ProjectTodoProjection {
-    int getId();
-    int getStatus();
-    int getChallengeId();
+    Integer getId();
+    Integer getStatus();
+    Integer getChallengeId();
     Todo getTodo();
 
     interface Todo {
-        int getId();
+        Integer getId();
         String getDesc();
     }
 }

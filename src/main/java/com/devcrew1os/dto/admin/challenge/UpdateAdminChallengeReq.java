@@ -13,5 +13,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateAdminChallengeReq {
-    private List<UpdateAdminChallengeData> updatedChallenges = new ArrayList<>();
+    private Integer challengeId;
+    private Integer newCategoryId;
+    private String newChallengeTitle;
+    private Integer newChallengeTerm;
+    private Integer newChallengeDiff;
+
+    private List<UpdateAdminChallengeTodo> todosToAdd = new ArrayList<>();
+    private List<UpdateAdminChallengeTodo> todosToUpdate = new ArrayList<>();
+    private List<UpdateAdminChallengeTodo> todosToDelete = new ArrayList<>();
 }

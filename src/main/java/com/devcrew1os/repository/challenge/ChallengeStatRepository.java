@@ -26,6 +26,22 @@ public interface ChallengeStatRepository extends JpaRepository<ChallengeStat, In
     void updateTotalRegisteredTodos(@Param("challengeId") Integer challengeId);
 
     @Modifying
+    @Query("UPDATE ChallengeStat cs SET cs.includeTodoCount = cs.includeTodoCount + :addTodoCount " +
+            "WHERE cs.id = :challengeId")
+    void addTotalRegisteredTodos(
+            @Param("challengeId") int challengeId,
+            @Param("addTodoCount") int addTodoCount
+    );
+
+    @Modifying
+    @Query("UPDATE ChallengeStat cs SET cs.includeTodoCount = cs.includeTodoCount - :removeTodoCount " +
+            "WHERE cs.id = :challengeId")
+    void removeTotalRegisteredTodos(
+            @Param("challengeId") int challengeId,
+            @Param("removeTodoCount") int removeTodoCount
+    );
+
+    @Modifying
     @Query("UPDATE ChallengeStat cs SET cs.averageSatisfactionRatio = " +
                     "(COALESCE(cs.averageSatisfactionRatio, 0.0) * cs.registeredReviewCount + :newScore) / (cs.registeredReviewCount + 1), " +
                     "cs.registeredReviewCount = cs.registeredReviewCount + 1 " +

@@ -11,7 +11,7 @@ import com.devcrew1os.dto.admin.category.UpdateAdminCategoryReq;
 import com.devcrew1os.entity.challenge.Category;
 import com.devcrew1os.entity.user.Users;
 import com.devcrew1os.repository.challenge.CategoryRepository;
-import com.devcrew1os.repository.projection.CategoryProjection;
+import com.devcrew1os.repository.projection.AdminCategoryProjection;
 import com.devcrew1os.repository.users.UsersRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -38,13 +38,13 @@ public class AdminCategoryTransaction {
     @Transactional(readOnly = true)
     public List<GetAdminCategoryData> getCategoryProcess() {
         // 1. fetch data: Category
-        List<CategoryProjection> categoryList = categoryRepo.findAllWithChallengeCount();
+        List<AdminCategoryProjection> categoryList = categoryRepo.findAllWithChallengeCount(false);
         if(categoryList.isEmpty()) {
             throw new RuntimeException("Category not exist");
         }
         // 2. fetch data: Admin
         List<String> categoryUpdateByList = categoryList.stream()
-                .map(CategoryProjection::getUpdatedBy)
+                .map(AdminCategoryProjection::getUpdatedBy)
                 .distinct()
                 .collect(Collectors.toList());
         List<Users> adminList = usersRepo.findAllByUserIdAndRoleAndStatus(categoryUpdateByList, UserRole.ADMIN.getValue(), UserStatus.ACTIVE.getValue());
@@ -63,7 +63,7 @@ public class AdminCategoryTransaction {
                         cat.getId(),
                         cat.getStatus(),
                         cat.getTitle(),
-                        (int) cat.getChallengeCount(),
+                        cat.getChallengeCount(),
                         adminMap.get(cat.getUpdatedBy()),
                         cat.getUpdatedAt()
                         )
@@ -81,6 +81,7 @@ public class AdminCategoryTransaction {
                 .map(newTitle -> Category.builder()
                         .title(newTitle)
                         .status(DataStatus.PREPARE.getValue())
+                        .isServerOnly(false)
                         .updatedAt(now)
                         .updatedBy(adminId)
                         .build()

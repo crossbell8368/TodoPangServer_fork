@@ -25,6 +25,9 @@ public class Category {
     @Column(name = "category_status", nullable = false)
     private int status;
 
+    @Column(name = "category_server_only", nullable = false)
+    private boolean isServerOnly;
+
     @Column(name = "category_last_updated_at", nullable = false)
     private LocalDateTime updatedAt;
 

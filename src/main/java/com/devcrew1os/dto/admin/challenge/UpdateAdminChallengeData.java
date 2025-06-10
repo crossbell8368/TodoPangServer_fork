@@ -17,5 +17,5 @@ public class UpdateAdminChallengeData {
     private Integer newChallengeTerm;
     private Integer newChallengeDiff;
     private Integer newChallengeStatus;
-    private List<UpdateAdminChallengeTodoData> newTodoList = new ArrayList<>();
+    private List<UpdateAdminChallengeTodo> newTodoList = new ArrayList<>();
 }

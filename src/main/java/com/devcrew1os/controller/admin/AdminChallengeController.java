@@ -40,17 +40,7 @@ public class AdminChallengeController {
     public ResponseEntity<?> setChallenge(
             @RequestBody SetAdminChallengeReq req
     ) {
-        SetAdminChallengeRes res = service.setAdminChallenges(
-                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
-        );
-        return response.handleResult(res);
-    }
-
-    @PostMapping("/todo/add")
-    public ResponseEntity<?> setChallengeTodo(
-            @RequestBody UpdateAdminChallengeReq req
-    ) {
-        UpdateAdminChallengeRes res = service.addAdminChallengeTodo(
+        SetAdminChallengeRes res = service.setAdminChallenge(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
         );
         return response.handleResult(res);
@@ -63,7 +53,20 @@ public class AdminChallengeController {
     public ResponseEntity<?> updateChallenge(
             @RequestBody UpdateAdminChallengeReq req
     ){
-        UpdateAdminChallengeRes res = service.updateAdminChallenges(
+        UpdateAdminChallengeRes res = service.updateAdminChallenge(
+                (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
+        );
+        return response.handleResult(res);
+    }
+
+    /*===========================
+       도전과제 배포
+    ===========================*/
+    @PostMapping("/deploy")
+    public ResponseEntity<?> deployChallenges(
+            @RequestBody DeployAdminChallengeReq req
+    ) {
+        DeployAdminChallengeRes res = service.deployAdminChallenges(
                 (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal(), req
         );
         return response.handleResult(res);

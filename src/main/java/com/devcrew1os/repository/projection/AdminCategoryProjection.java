@@ -2,12 +2,12 @@ package com.devcrew1os.repository.projection;
 
 import java.time.LocalDateTime;
 
-public interface CategoryProjection {
+public interface AdminCategoryProjection {
 
-    int getId();
+    Integer getId();
     String getTitle();
-    int getStatus();
+    Integer getStatus();
     LocalDateTime getUpdatedAt();
     String getUpdatedBy();
-    long getChallengeCount();
+    Integer getChallengeCount();
 }

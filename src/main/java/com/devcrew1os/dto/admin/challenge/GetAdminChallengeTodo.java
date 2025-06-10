@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GetAdminChallengeTodoData {
+public class GetAdminChallengeTodo {
     private Integer todoId;
     private Integer todoOrder;
     private String todoTitle;
