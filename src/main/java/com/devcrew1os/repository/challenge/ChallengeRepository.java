@@ -19,7 +19,10 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     @Query("SELECT count(ch) > 0 FROM Challenge ch " +
             "WHERE ch.id = :challengeId " +
             "AND ch.status = :status")
-    boolean existsChallengeByIdAndStatus(@Param("challengeId") int challengeId, @Param("status") int status);
+    boolean existsChallengeByIdAndStatus(
+            @Param("challengeId") int challengeId,
+            @Param("status") int status
+    );
 
     @Query("SELECT count(ch) > 0 FROM Challenge ch " +
             "WHERE ch.title = :title " +
@@ -32,19 +35,26 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
     @Query("SELECT ch FROM Challenge ch " +
             "JOIN FETCH ch.stat st " +
             "WHERE ch.id = :challengeId")
-    Optional<Challenge> findChallengeByIdWithStat(@Param("challengeId") int challengeId);
+    Optional<Challenge> findChallengeByIdWithStat(
+            @Param("challengeId") int challengeId
+    );
 
     @Query("SELECT ch FROM Challenge ch " +
             "JOIN FETCH ch.stat st " +
             "JOIN FETCH ch.category cat " +
             "WHERE ch.id = :challengeId " +
             "AND ch.status = :status")
-    Optional<Challenge> findChallengeByIdWithCategory(@Param("challengeId") int challengeId, @Param("status") int status);
+    Optional<Challenge> findChallengeByIdWithCategory(
+            @Param("challengeId") int challengeId,
+            @Param("status") int status)
+            ;
 
     @Query("SELECT ch FROM Challenge ch " +
             "JOIN FETCH ch.stat st " +
             "WHERE ch.id IN :challengeIds")
-    List<Challenge> findAllChallengesWithIds(@Param("challengeIds") Set<Integer> challengeIds);
+    List<Challenge> findAllChallengesWithIds(
+            @Param("challengeIds") Set<Integer> challengeIds
+    );
 
     @Query("SELECT ch FROM Challenge ch " +
             "JOIN FETCH ch.category cat " +

@@ -1,8 +1,7 @@
-package com.devcrew1os.security;
+package com.devcrew1os.common.security;
 
 import com.devcrew1os.dto.Response;
 import com.devcrew1os.repository.users.UsersRepository;
-import com.devcrew1os.common.util.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -30,6 +29,7 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenAuthFilter.class);
 
+    // Main
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -78,6 +78,8 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(auth);
         filterChain.doFilter(request, response);
     }
+
+    // support
     private void setResponse(HttpServletResponse res, int status, String message) throws IOException {
         // struct body
         Response.Body<Object> body = Response.Body.builder()

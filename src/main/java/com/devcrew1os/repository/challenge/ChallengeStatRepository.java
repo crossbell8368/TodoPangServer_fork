@@ -14,19 +14,23 @@ import java.util.List;
 public interface ChallengeStatRepository extends JpaRepository<ChallengeStat, Integer> {
     boolean existsById(Integer id);
 
-    @Query("SELECT cs FROM ChallengeStat cs JOIN FETCH cs.challenge c JOIN FETCH c.category WHERE c.status =:status ORDER BY cs.participateUserCount DESC")
-    List<ChallengeStat> findTop10ByPopularityWithDetail(@Param("status") Integer status, Pageable pageable);
+    @Query("SELECT cs FROM ChallengeStat cs " +
+            "JOIN FETCH cs.challenge c " +
+            "WHERE c.status =:status " +
+            "ORDER BY cs.participateUserCount DESC")
+    List<ChallengeStat> findTop10ByPopularityWithDetail(
+            @Param("status") Integer status, Pageable pageable
+    );
 
     @Modifying
-    @Query("UPDATE ChallengeStat cs SET cs.participateUserCount = cs.participateUserCount + 1 WHERE cs.id = :challengeId")
+    @Query("UPDATE ChallengeStat cs " +
+            "SET cs.participateUserCount = cs.participateUserCount + 1 " +
+            "WHERE cs.id = :challengeId")
     void updatePopularity(@Param("challengeId") Integer challengeId);
 
     @Modifying
-    @Query("UPDATE ChallengeStat cs SET cs.includeTodoCount = cs.includeTodoCount - 1 WHERE cs.id = :challengeId")
-    void updateTotalRegisteredTodos(@Param("challengeId") Integer challengeId);
-
-    @Modifying
-    @Query("UPDATE ChallengeStat cs SET cs.includeTodoCount = cs.includeTodoCount + :addTodoCount " +
+    @Query("UPDATE ChallengeStat cs " +
+            "SET cs.includeTodoCount = cs.includeTodoCount + :addTodoCount " +
             "WHERE cs.id = :challengeId")
     void addTotalRegisteredTodos(
             @Param("challengeId") int challengeId,
@@ -34,7 +38,8 @@ public interface ChallengeStatRepository extends JpaRepository<ChallengeStat, In
     );
 
     @Modifying
-    @Query("UPDATE ChallengeStat cs SET cs.includeTodoCount = cs.includeTodoCount - :removeTodoCount " +
+    @Query("UPDATE ChallengeStat cs " +
+            "SET cs.includeTodoCount = cs.includeTodoCount - :removeTodoCount " +
             "WHERE cs.id = :challengeId")
     void removeTotalRegisteredTodos(
             @Param("challengeId") int challengeId,

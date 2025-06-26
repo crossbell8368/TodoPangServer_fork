@@ -2,8 +2,6 @@ package com.devcrew1os.service.main.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.main.challenge.*;
-import com.devcrew1os.entity.challenge.Category;
-import com.devcrew1os.entity.challenge.Challenge;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

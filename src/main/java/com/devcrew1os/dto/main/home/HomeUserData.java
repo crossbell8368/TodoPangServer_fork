@@ -9,6 +9,6 @@ import lombok.Setter;
 @AllArgsConstructor
 public class HomeUserData {
     private String userName;
-    private int finishedProjects;
-    private int registeredProjects;
+    private int serviceUsedDays;
+    private int completeProjects;
 }

@@ -17,8 +17,6 @@ import java.util.Set;
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
-    Optional<Review> findById(int id);
-
     List<Review> findAllByIdIn(Set<Integer> ids);
 
     @Query("SELECT count(rv) > 0 FROM Review rv " +

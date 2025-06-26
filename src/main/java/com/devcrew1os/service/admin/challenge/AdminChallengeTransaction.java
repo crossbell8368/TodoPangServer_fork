@@ -328,18 +328,18 @@ public class AdminChallengeTransaction {
             switch(DataStatus.fromValue(newStatus)) {
                 case DEPLOYED:
                     if(currentStatus == DataStatus.PREPARE.getValue()){
-                        if(!challengeRepo.existsChallengeByTitleAndStatus(target.getTitle(), DataStatus.DEPLOYED.getValue()) && target.getStat().getIncludeTodoCount() != 0){
+                        if(!challengeRepo.existsChallengeByTitleAndStatus(target.getTitle(), DataStatus.DEPLOYED.getValue()) && target.getStat().getIncludeTodoCount() > 0){
                             target.setStatus(newStatus);
                             updateTodoStatus(adminId, target.getId(), newStatus, now);
                             res.addMessage("Challenge(" + dto.getChallengeId() + ") turned into DEPLOYED");
                             isUpdated = true;
                         } else {
-                            res.addMessage("Challenge(" + target.getId() + ") title already DEPLOYED");
-                            logger.warn("Target challenge({}) for deployment already exist: {}", dto.getChallengeId(), target.getTitle());
+                            logger.warn("Target challenge({}) is not qualified for deployment: {}", dto.getChallengeId(), target.getTitle());
+                            throw new RuntimeException("Challenge(" + dto.getChallengeId() + ")  is not qualified for deployment");
                         }
                     } else {
-                        res.addMessage("Challenge(" + target.getId() + ") cannot be DEPLOYED from status " + DataStatus.fromValue(currentStatus).name());
                         logger.warn("Target challenge({}) for deployment cannot be DEPLOYED from status {}", target.getId(), DataStatus.fromValue(currentStatus).name());
+                        throw new RuntimeException("Challenge(" + target.getId() + ") cannot be DEPLOYED from status " + DataStatus.fromValue(currentStatus).name());
                     }
                     break;
 

@@ -1,14 +1,10 @@
 package com.devcrew1os.service.admin.challenge;
 
-import com.devcrew1os.common.enums.DataStatus;
-import com.devcrew1os.common.enums.admin.AdminChallengeUpdateType;
 import com.devcrew1os.common.enums.ErrorCode;
-import com.devcrew1os.dto.PageResponse;
 import com.devcrew1os.dto.admin.challenge.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 

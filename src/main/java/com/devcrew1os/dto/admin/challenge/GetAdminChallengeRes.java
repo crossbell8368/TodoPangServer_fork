@@ -2,7 +2,6 @@ package com.devcrew1os.dto.admin.challenge;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.BaseResponse;
-import com.devcrew1os.dto.PageResponse;
 import lombok.Getter;
 
 @Getter

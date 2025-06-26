@@ -1,4 +1,4 @@
-package com.devcrew1os.common.util;
+package com.devcrew1os.common.security;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;

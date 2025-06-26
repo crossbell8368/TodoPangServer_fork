@@ -2,9 +2,6 @@ package com.devcrew1os.service.main.home;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.main.home.*;
-import com.devcrew1os.entity.challenge.Category;
-import com.devcrew1os.entity.challenge.ChallengeStat;
-import com.devcrew1os.entity.user.Users;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +28,6 @@ public class HomeService {
             res.setData(data);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully get home data");
-            logger.info("[HomeService][{}] Successfully get home data", userId);
             return res;
 
         } catch(RuntimeException err) {
@@ -44,6 +40,27 @@ public class HomeService {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Error detected while getting home data");
             logger.error("[HomeService][{}] {}", userId, err.getMessage());
+            return res;
+        }
+    }
+
+    /*===========================
+       도전과제 목록 조회
+    ===========================*/
+    public HomeRankingRes getHomeRanking(String userId) {
+        HomeRankingRes res = new HomeRankingRes(false, "[Info] Get home ranking initiated", ErrorCode.OK);
+
+        try {
+            List<HomeChallengeData> data = transaction.getHomeRanking(userId);
+            res.setData(data);
+            res.setSuccess(true);
+            res.addMessage("[Info] Successfully get home ranking data");
+            return res;
+
+        } catch(Exception err) {
+            res.setErrorCode(ErrorCode.INTERNAL_ERROR);
+            res.addMessage("[Error] Failed to get Home ranking related data: " + err.getMessage());
+            logger.error("[HomeService][{}]", userId, err);
             return res;
         }
     }

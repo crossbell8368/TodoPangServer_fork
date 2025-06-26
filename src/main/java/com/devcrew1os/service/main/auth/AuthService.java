@@ -2,7 +2,7 @@ package com.devcrew1os.service.main.auth;
 
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.common.enums.users.UserSocialType;
-import com.devcrew1os.common.util.TokenService;
+import com.devcrew1os.common.security.TokenService;
 import com.devcrew1os.dto.main.auth.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
