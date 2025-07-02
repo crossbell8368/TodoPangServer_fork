@@ -3,6 +3,7 @@ package com.devcrew1os.service.admin.category;
 import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.category.*;
+import com.devcrew1os.service.main.challenge.ChallengeCacheManager;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminCategoryService {
 
+    private final ChallengeCacheManager cacheManager;
     private final AdminCategoryTransaction transaction;
 
     private static final Logger logger = LoggerFactory.getLogger(AdminCategoryService.class);
@@ -101,6 +103,7 @@ public class AdminCategoryService {
 
         try {
             transaction.updateCategoryProcess(adminId, req);
+            cacheManager.refreshCategory();
             res.setSuccess(true);
             res.addMessage("[Info] Update categories finished");
             logger.info("[AdminCategory][{}] Update categories finished", adminId);

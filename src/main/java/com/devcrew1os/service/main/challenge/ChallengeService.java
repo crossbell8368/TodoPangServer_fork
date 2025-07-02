@@ -54,7 +54,7 @@ public class ChallengeService {
         if(!isRequestValid(userId, req, res)) return res;
 
         try {
-            ChallengeDetailData data = transaction.getChallengeDetailProcess(req.getChallengeId());
+            ChallengeDetailData data = transaction.getChallengeDetailProcess(userId, req.getChallengeId());
             res.setData(data);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully fetch challenge detail");

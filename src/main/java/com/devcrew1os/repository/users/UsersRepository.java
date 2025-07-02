@@ -6,23 +6,24 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 @Repository
 public interface UsersRepository extends JpaRepository<Users, String> {
-    boolean existsUsersByUserId(String userId);
+
+    boolean existsByUserIdAndRole(String userId, int role);
+
+    boolean existsByUserId(String userId);
 
     Optional<Users> findByUserId(String userId);
 
     @Query("SELECT u FROM Users u " +
-            "WHERE u.userId IN :userIdList")
-    List<Users> findAllUsersWithIdSet(@Param("userIdList") Set<String> userIdList);
-
-    @Query("SELECT u FROM Users u JOIN FETCH u.project p WHERE u.userId = :userId")
-    Optional<Users> findUsersAndProjectByUserId(@Param("userId") String userId);
+            "JOIN FETCH u.project p " +
+            "WHERE u.userId = :userId")
+    Optional<Users> findUsersAndProjectByUserId(
+            @Param("userId") String userId
+    );
 
     @Query("SELECT us FROM Users us " +
             "WHERE us.userId IN :userList " +

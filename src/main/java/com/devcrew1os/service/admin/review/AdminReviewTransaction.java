@@ -2,8 +2,12 @@ package com.devcrew1os.service.admin.review;
 
 import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.dto.admin.review.*;
+import com.devcrew1os.entity.challenge.Challenge;
 import com.devcrew1os.entity.review.Review;
+import com.devcrew1os.entity.review.ReviewChallenge;
+import com.devcrew1os.repository.challenge.ChallengeRepository;
 import com.devcrew1os.repository.projection.AdminReviewProjection;
+import com.devcrew1os.repository.review.ReviewChallengeRepository;
 import com.devcrew1os.repository.review.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -24,6 +28,8 @@ import java.util.stream.Collectors;
 public class AdminReviewTransaction {
 
     private final ReviewRepository reviewRepo;
+    private final ChallengeRepository challengeRepo;
+    private final ReviewChallengeRepository reviewChallengeRepo;
 
     private final static Logger logger = LoggerFactory.getLogger(AdminReviewTransaction.class);
 
@@ -55,6 +61,7 @@ public class AdminReviewTransaction {
     public void setReviewProcess(String adminId, SetAdminReviewReq req) {
         LocalDateTime now = LocalDateTime.now();
 
+        // 1. set Review
         Review newReview = Review.builder().
                 title(req.getTitle()).
                 emoji(req.getEmoji()).
@@ -62,7 +69,26 @@ public class AdminReviewTransaction {
                 updatedAt(now).
                 updatedBy(adminId).
                 build();
-        reviewRepo.save(newReview);
+        Review savedReview = reviewRepo.save(newReview);
+
+        // 2. set ReviewChallenges
+        List<ReviewChallenge> reviewChallengeList = structReviewChallenges(savedReview);
+        reviewChallengeRepo.saveAll(reviewChallengeList);
+    }
+
+    private List<ReviewChallenge> structReviewChallenges(Review review) {
+        List<Challenge> challengeList = challengeRepo.findAllByStatus(DataStatus.DELETE.getValue());
+        if(challengeList.isEmpty()) {
+            logger.warn("[AdminReviewTrans] Challenges not found");
+            return Collections.emptyList();
+        }
+        return challengeList.stream()
+                .map(ch -> ReviewChallenge.builder()
+                        .review(review)
+                        .challenge(ch)
+                        .userSelectedCount(0)
+                        .build()
+                ).collect(Collectors.toList());
     }
 
     /*===========================
@@ -122,7 +148,7 @@ public class AdminReviewTransaction {
         for(DeployAdminReviewData newData : req.getData()) {
             Review target = targetReviewMap.get(newData.getReviewId());
             if (target == null) {
-                logger.error("ReviewId {} requested for deployment but not found.", newData.getReviewId());
+                logger.error("[AdminReviewTrans] ReviewId {} requested for deployment but not found.", newData.getReviewId());
                 throw new RuntimeException("ReviewId(" + newData.getReviewId() + ") not found in database");
             }
             int currentStatus = target.getStatus();

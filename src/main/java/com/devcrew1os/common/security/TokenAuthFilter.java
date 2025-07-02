@@ -1,5 +1,6 @@
 package com.devcrew1os.common.security;
 
+import com.devcrew1os.common.enums.users.UserRole;
 import com.devcrew1os.dto.Response;
 import com.devcrew1os.repository.users.UsersRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @Component
@@ -34,46 +36,59 @@ public class TokenAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        // 1. check header
+        // 1. extract & check header
         String header = request.getHeader("Authorization");
         if(header == null || !header.startsWith("Bearer ")) {
-            setResponse(response, HttpServletResponse.SC_BAD_REQUEST, "[Failed]Authorization header missing");
-            logger.error("[TokenFilter] Authorization header missing");
+            setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Error] Authorization token is required.");
+            logger.warn("[TokenFilter] Authorization header is missing or invalid.");
             return;
         }
-
-        // 1. check URL
-        String path = request.getRequestURI();
-        boolean isAdminSignup = path.equals("/admin/auth/signup");
-        boolean isMainSignup = path.equals("/main/auth/signup");
-
         // 2. verified token
         String token = header.substring(7);
         String userId;
-
         try {
             userId = tokenService.tokenVerifier(token);
-            if(userId == null) {
+            if (userId == null) {
                 throw new RuntimeException("Invalid token");
             }
         } catch (Exception err) {
-            setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Failed]Invalid or expired token");
+            setResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "[Failed] Invalid or expired token.");
             return;
         }
+        // 3. check path
+        String path = request.getRequestURI();
+        boolean isAdminReq = path.startsWith("/admin/");
+        boolean isUserReq = path.startsWith("/main/");
+        boolean isPublicAdminPath = path.equals("/admin/auth/signup") || path.equals("/admin/auth/logout");
+        boolean isPublicMainPath = path.equals("/main/auth/signup") || path.equals("/main/auth/logout");
 
-        // 3-1. db check
-        if(!isAdminSignup && !isMainSignup) {
-            if(!userRepo.existsUsersByUserId(userId)) {
-                setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Failed]Invalid userId");
-                logger.warn("[TokenFilter] Failed to find userId at database: {}", userId);
+        // 4. verified userId
+        if(isAdminReq && !isPublicAdminPath) {
+            if(!userRepo.existsByUserIdAndRole(userId, UserRole.ADMIN.getValue())){
+                setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Error] Failed to found Admin User with id: " + userId);
+                logger.warn("[TokenFilter] Failed to find adminId at server: {}", userId);
+                return;
+            }
+        } else if(isUserReq && !isPublicMainPath) {
+            if(!userRepo.existsByUserId(userId)){
+                setResponse(response, HttpServletResponse.SC_NOT_FOUND, "[Error] Failed to found User with id: " + userId);
+                logger.warn("[TokenFilter] Failed to find user at server: {}", userId);
                 return;
             }
         }
-
-        // 4-1. save context
-        String role = isAdminSignup ? "ROLE_ADMIN" : "ROLE_USER";
+        // 4. set role
+        List<SimpleGrantedAuthority> authorities;
+        if (isAdminReq) {
+            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        } else if (isUserReq) {
+            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        } else {
+            setResponse(response, HttpServletResponse.SC_FORBIDDEN, "[Error] Access to this path is denied.");
+            return;
+        }
+        // 5. save context
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                userId, null, List.of(new SimpleGrantedAuthority(role))
+                userId, null, authorities
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
         filterChain.doFilter(request, response);

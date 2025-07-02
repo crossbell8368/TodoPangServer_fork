@@ -21,6 +21,11 @@ public enum DataResult {
     private final String desc;
 
     public boolean isSuccess(){
-        return this == SUCCESSFULLY_NEUTRALIZED || this == SUCCESSFULLY_DELETED || this == SUCCESSFULLY_DEPLOY;
+        return this == SUCCESSFULLY_NEUTRALIZED ||
+                this == SUCCESSFULLY_DELETED ||
+                this == SUCCESSFULLY_DEPLOY ||
+                this == ALREADY_DEPLOYED ||
+                this == ALREADY_NEUTRALIZED ||
+                this == ALREADY_DELETED;
     }
 }

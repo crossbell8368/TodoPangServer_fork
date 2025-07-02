@@ -1,20 +1,28 @@
 package com.devcrew1os.service.admin.challenge;
 
+import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.common.enums.ErrorCode;
 import com.devcrew1os.dto.admin.challenge.*;
+import com.devcrew1os.entity.challenge.Challenge;
+import com.devcrew1os.service.main.challenge.ChallengeCacheManager;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class AdminChallengeService {
 
+    private final ChallengeCacheManager cacheManager;
     private final AdminChallengeTransaction transaction;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -159,10 +167,15 @@ public class AdminChallengeService {
     ===========================*/
     public DeployAdminChallengeRes deployAdminChallenges(String adminId, DeployAdminChallengeReq req) {
         DeployAdminChallengeRes res = new DeployAdminChallengeRes(false, "[Info] Deploy admin challenges initiated", ErrorCode.OK);
+        LocalDateTime now = LocalDateTime.now();
 
         if(!isRequestValid(adminId, req, res)) return res;
+        Set<Integer> targetChallengeIds = extractIdsFromDto(req);
+
         try {
-            transaction.deployChallengeProcess(adminId, req, res);
+            List<Challenge> targetChallengeData = transaction.getRequestChallenges(targetChallengeIds, adminId);
+            transaction.deployChallengeProcess(targetChallengeData, req, res, now, adminId);
+            updateCache(req);
             res.setSuccess(true);
             res.addMessage("[Info] Successfully deploy admin challenges");
             return res;
@@ -199,5 +212,36 @@ public class AdminChallengeService {
             return false;
         }
         return true;
+    }
+
+    private Set<Integer> extractIdsFromDto(DeployAdminChallengeReq req) {
+        return req.getData().stream()
+                .map(DeployAdminChallengeData::getChallengeId)
+                .collect(Collectors.toSet());
+    }
+
+    private void updateCache(DeployAdminChallengeReq req) {
+        // 1. group by status
+        Map<DataStatus, List<DeployAdminChallengeData>> groupByStatus = req.getData().stream()
+                .collect(Collectors.groupingBy(dto -> DataStatus.fromValue(dto.getNewStatus())));
+
+        // 2. proceed update by status
+        for(Map.Entry<DataStatus, List<DeployAdminChallengeData>> entry : groupByStatus.entrySet()) {
+            DataStatus newStatus = entry.getKey();
+            List<DeployAdminChallengeData> dtoList = entry.getValue();
+            List<Integer> challengeIds = dtoList.stream()
+                    .map(DeployAdminChallengeData::getChallengeId).collect(Collectors.toList());
+
+            switch (newStatus) {
+                case DEPLOYED:
+                    cacheManager.addChallengeData(challengeIds);
+                    break;
+                case PREPARE:
+                    cacheManager.deleteChallenges(challengeIds);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }

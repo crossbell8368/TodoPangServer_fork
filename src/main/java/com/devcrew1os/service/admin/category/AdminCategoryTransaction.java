@@ -104,7 +104,7 @@ public class AdminCategoryTransaction {
         logger.info("[AdminCategory][{}] {} Categories data updated", adminId, categories.size());
     }
 
-    private List<Category> getCategoryByIdList(List<UpdateAdminCategoryData> data) {
+    public List<Category> getCategoryByIdList(List<UpdateAdminCategoryData> data) {
         // extract IdList
         Set<Integer> idList = data.stream()
                 .map(UpdateAdminCategoryData::getCategoryId)
@@ -121,7 +121,7 @@ public class AdminCategoryTransaction {
         return categories;
     }
 
-    private void updateCategory(String adminId, List<Category> entities, UpdateAdminCategoryReq req) {
+    public void updateCategory(String adminId, List<Category> entities, UpdateAdminCategoryReq req) {
         // prepare data
         LocalDateTime updatedAt = LocalDateTime.now();
         Map<Integer, UpdateAdminCategoryData> updated = req.getUpdatedCategories().stream()
