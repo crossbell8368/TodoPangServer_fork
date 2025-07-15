@@ -74,7 +74,7 @@ public class HomeScheduler {
                 challengeValueOps.set(dataKey, jsonDTO, Duration.ofHours(2));
             }
             redisTemplate.expire(rankingIdKey, Duration.ofHours(2));
-            logger.info("[HomeScheduler] Successfully set '{}' challenges at cache", topChallenges.size());
+            logger.info("[HomeScheduler][Batch] Successfully update '{}' challenges at cache", topChallenges.size());
 
         } catch (JsonProcessingException err) {
             logger.error("[HomeScheduler] Error detected while convert challenge data to json.", err);

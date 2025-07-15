@@ -36,13 +36,13 @@ public class ReviewService {
         } catch(RuntimeException err) {
             res.setErrorCode(ErrorCode.DATA_NOT_FOUND);
             res.addMessage("[Failed] ReviewList not found");
-            logger.error("[ReviewService][{}] {}", userId, err.getMessage());
+            logger.error("[ReviewService][{}] ", userId, err);
             return res;
 
         } catch(Exception err) {
             res.setErrorCode(ErrorCode.DATABASE_ERROR);
             res.addMessage("[Failed] Error detected, while get reviewList");
-            logger.error("[ReviewService][{}] {}", userId, err.getMessage());
+            logger.error("[ReviewService][{}] ", userId, err);
             return res;
         }
     }

@@ -87,7 +87,6 @@ public class ChallengeService {
             return false;
         }
         res.addMessage("[Success] Valid get challenge detail request");
-        logger.info("[ChallengeService][{}] Valid get challenge detail request", userId);
         return true;
     }
 
@@ -142,7 +141,6 @@ public class ChallengeService {
             return false;
         }
         res.addMessage("[Success] Todo register request is valid");
-        logger.info("[ChallengeService][{}] Todo register request is valid", userId);
         return true;
     }
 }

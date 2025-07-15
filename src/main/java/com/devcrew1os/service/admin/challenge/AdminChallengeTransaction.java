@@ -107,13 +107,13 @@ public class AdminChallengeTransaction {
         try {
             List<Challenge> challengeList = challengeRepo.findAllByChallengeIds(challengeIds);
             if(challengeList == null || challengeList.isEmpty()) {
-                logger.warn("[AdminChallenge][{}] No challenge found at db", adminId);
+                logger.warn("[AdminChallengeTrans][{}] No challenge found at db", adminId);
                 return Collections.emptyList();
             }
             return challengeList;
 
         } catch(Exception err) {
-            logger.error("[AdminChallenge][{}] Failed to get data from database", adminId, err);
+            logger.error("[AdminChallengeTrans][{}] Failed to get data from database", adminId, err);
             return Collections.emptyList();
         }
     }
@@ -211,7 +211,7 @@ public class AdminChallengeTransaction {
             entity.setUpdatedBy(adminId);
             entity.setUpdatedAt(now);
         } else {
-            logger.info("[AdminChallenge][{}] No actual changes applied to challenge [ID: {}]", adminId, entity.getId());
+            logger.info("[AdminChallengeTrans][{}] No actual changes applied to challenge [ID: {}]", adminId, entity.getId());
         }
     }
 
@@ -243,7 +243,7 @@ public class AdminChallengeTransaction {
             entity.setUpdatedBy(adminId);
             entity.setUpdatedAt(now);
         } else {
-            logger.warn("Challenge not updated: " + req.getChallengeId());
+            logger.warn("[AdminChallengeTrans][{}] Challenge not updated: {}", adminId, req.getChallengeId());
         }
         return isUpdated;
     }
@@ -343,7 +343,7 @@ public class AdminChallengeTransaction {
                         if (target.getStatus() == DataStatus.PREPARE.getValue() && target.getStat().getIncludeTodoCount() > 0) {
                             validIds.add(id);
                         } else {
-                            res.addMessage("Challenge(" + id + ") is not qualified for deployment.");
+                            res.addMessage("[Info] Challenge(" + id + ") is not qualified for deployment.");
                         }
                     }
                     if (validIds.isEmpty()) return;
@@ -361,7 +361,7 @@ public class AdminChallengeTransaction {
                         if (!existingDeployedTitles.contains(title)) {
                             finalDeployIds.add(titleToIdMap.get(title));
                         } else {
-                            res.addMessage("Challenge(" + titleToIdMap.get(title) + ") title '" + title + "' already exists as DEPLOYED.");
+                            res.addMessage("[Info] Challenge(" + titleToIdMap.get(title) + ") title '" + title + "' already exists as DEPLOYED.");
                         }
                     }
 
@@ -369,7 +369,7 @@ public class AdminChallengeTransaction {
                     if (!finalDeployIds.isEmpty()) {
                         challengeRepo.updateStatusAndAuditByIds(DataStatus.DEPLOYED.getValue(), adminId, now, finalDeployIds);
                         todoRepo.updateStatusByChallengeIds(DataStatus.DEPLOYED.getValue(), adminId, now, finalDeployIds);
-                        res.addMessage("Challenges(" + finalDeployIds + ") turned into DEPLOYED.");
+                        res.addMessage("[Info] Challenges(" + finalDeployIds + ") turned into DEPLOYED.");
                     }
                     break;
 

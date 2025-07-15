@@ -49,7 +49,7 @@ public interface TodoRepository extends JpaRepository<Todo, Integer> {
     );
 
     @Query("SELECT t FROM Todo t " +
-            "WHERE t.challenge.id IN :challengeIds AND t.status = :status")
+            " WHERE t.challenge.id IN :challengeIds AND t.status = :status")
     List<Todo> findAllByChallengeIdsAndStatus(
             @Param("challengeIds") List<Integer> challengeIds,
             @Param("status") int status

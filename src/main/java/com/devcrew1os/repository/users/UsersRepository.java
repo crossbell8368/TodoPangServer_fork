@@ -34,4 +34,10 @@ public interface UsersRepository extends JpaRepository<Users, String> {
             @Param("role") int role,
             @Param("status") int status
     );
+
+    @Query("SELECT us.project.id FROM Users us " +
+            "WHERE us.userId = :userId")
+    Integer findProjectIdByUserId(
+            @Param("userId") String userId
+    );
 }

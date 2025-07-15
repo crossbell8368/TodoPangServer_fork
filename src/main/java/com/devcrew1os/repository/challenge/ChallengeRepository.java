@@ -47,6 +47,10 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Integer> {
             @Param("status") int status
     );
 
+    @Query("SELECT ch.id FROM Challenge ch " +
+            "WHERE ch.status = :status")
+    List<Integer> findAllIdsByStatus(int status);
+
     @Query("SELECT ch FROM Challenge ch " +
             "JOIN FETCH ch.stat st " +
             "WHERE ch.id = :challengeId")

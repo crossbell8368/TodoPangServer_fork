@@ -63,33 +63,37 @@ public class ChallengeCacheManager {
             // 1. fetch data from DB
             // category
             List<Category> categoryList = categoryRepo.findAllByStatusDesc(DataStatus.DEPLOYED.getValue());
-            if(categoryList.isEmpty()) return;
-
+            if(categoryList.isEmpty()) {
+                logger.error("[ChallengeCacheManager] Failed to search category data at db");
+                return;
+            }
             // challenge
             List<Challenge> challengeList = challengeRepo.findAllByStatusDesc(DataStatus.DEPLOYED.getValue());
-            if(challengeList.isEmpty()) return;
-
-            // todos
+            if(challengeList.isEmpty()) {
+                logger.error("[ChallengeCacheManager] Failed to search challenges data at db");
+                return;
+            }
             List<Integer> challengeIds = challengeList.stream()
                     .map(Challenge::getId).collect(Collectors.toList());
-            List<Todo> todoList = todoRepo.findAllByChallengeIdsAndStatus(challengeIds, DataStatus.DEPLOYED.getValue());
-            if(challengeIds.isEmpty()) return;
 
+            // todos
+            List<Todo> todoList = todoRepo.findAllByChallengeIdsAndStatus(challengeIds, DataStatus.DEPLOYED.getValue());
+            if(challengeIds.isEmpty()) {
+                logger.error("[ChallengeCacheManager] Failed to search todos data at db");
+                return;
+            }
             Map<Integer, List<Todo>> todosByChallengeId = todoList.stream()
                     .collect(Collectors.groupingBy(todo -> todo.getChallenge().getId()));
-
 
             // 2. cleanup & prepare cache
             cleanupCache();
             ListOperations<String, Integer> listOps = integerRedisTemplate.opsForList();
             ValueOperations<String, String> valueOps = stringRedisTemplate.opsForValue();
 
-
             // 3. struct DTO & set cache
             // category
             Map<Integer, String> categoryMap = categoryList.stream()
                     .collect(Collectors.toMap(Category::getId, Category::getTitle));
-
             String jsonCategory = objectMapper.writeValueAsString(categoryMap);
             valueOps.set(categoryKey, jsonCategory);
 
@@ -129,8 +133,6 @@ public class ChallengeCacheManager {
                 String jsonDetailData = objectMapper.writeValueAsString(detailData);
                 valueOps.set(detailKey, jsonDetailData);
             }
-            logger.info("[ChallengeCacheManager] Successfully set '{}' category and '{}' challenges at cache", categoryMap.size(), challengeList.size());
-
         }  catch (JsonProcessingException err) {
             logger.error("[ChallengeCacheManager] Failed to convert DTO to JSON", err);
         } catch (Exception err) {
@@ -219,21 +221,27 @@ public class ChallengeCacheManager {
     public void addChallengeData(List<Integer> challengeId) {
         try {
             // 1. fetch data from db
+            // challenge
             List<Challenge> challengeList = challengeRepo.findAllByChallengeIdsAndStatus(challengeId, DataStatus.DEPLOYED.getValue());
-            if(challengeList.isEmpty()) return;
+            if(challengeList.isEmpty()) {
+                logger.error("[ChallengeCacheManager] Failed to search challenge data at db");
+                return;
+            }
 
             // todos
             List<Integer> challengeIds = challengeList.stream()
                     .map(Challenge::getId).collect(Collectors.toList());
             List<Todo> todoList = todoRepo.findAllByChallengeIdsAndStatus(challengeIds, DataStatus.DEPLOYED.getValue());
-            if(challengeIds.isEmpty()) return;
-
+            if(challengeIds.isEmpty()) {
+                logger.error("[ChallengeCacheManager] Failed to search todo data at db");
+                return;
+            }
             Map<Integer, List<Todo>> todosByChallengeId = todoList.stream()
                     .collect(Collectors.groupingBy(todo -> todo.getChallenge().getId()));
 
             // 2. struct dto & add/update to cache
-            refreshChallengeIds(challengeIds);
             ValueOperations<String, String> valueOps = stringRedisTemplate.opsForValue();
+            // challengeCard
             for(Challenge entity : challengeList) {
                 ChallengeListInfo challengeCard = new ChallengeListInfo(
                         entity.getId(),
@@ -246,12 +254,11 @@ public class ChallengeCacheManager {
                 String jsonCardData = objectMapper.writeValueAsString(challengeCard);
                 valueOps.set(cardKey, jsonCardData);
 
-                // challenge(Detail)
+                // challengeDetail
                 List<Todo> relatedTodos = todosByChallengeId.getOrDefault(entity.getId(), Collections.emptyList());
                 List<ChallengeTodoData> todoDtoList = relatedTodos.stream()
                         .map(todo -> new ChallengeTodoData(todo.getId(), todo.getDesc()))
                         .collect(Collectors.toList());
-
                 ChallengeDetailData detailData = new ChallengeDetailData(
                         entity.getId(),
                         entity.getTitle(),
@@ -266,7 +273,8 @@ public class ChallengeCacheManager {
                 String jsonDetailData = objectMapper.writeValueAsString(detailData);
                 valueOps.set(detailKey, jsonDetailData);
             }
-            logger.info("[ChallengeCacheManager] Successfully add '{}' challenge data at cache", challengeList.size());
+            // challengeIds
+            refreshChallengeIds();
 
         } catch(Exception err) {
             logger.error("[ChallengeCacheManager] Failed add '{}' challenge data at cache", challengeId, err);
@@ -284,7 +292,7 @@ public class ChallengeCacheManager {
                 List<Integer> updatedChallengeIds = prevChallengeIds.stream()
                         .filter(id -> !deletedChallengeIds.contains(id))
                         .collect(Collectors.toList());
-                refreshChallengeIds(updatedChallengeIds);
+                refreshChallengeIds();
             } else {
                 logger.error("[ChallengeCacheManager] Failed to get previous ChallengeIdsKeys.");
             }
@@ -355,10 +363,13 @@ public class ChallengeCacheManager {
     /*===========================
         ChallengeIds 초기화
     ===========================*/
-    public void refreshChallengeIds(List<Integer> updatedChallengeIds) {
+    public void refreshChallengeIds() {
         try {
             // 1. truncate cache
             stringRedisTemplate.delete(challengeIdKey);
+
+            // 2. fetch Ids from DB
+            List<Integer> updatedChallengeIds = challengeRepo.findAllIdsByStatus(DataStatus.DEPLOYED.getValue());
 
             // 2. update cache
             ListOperations<String, Integer> listOps = integerRedisTemplate.opsForList();

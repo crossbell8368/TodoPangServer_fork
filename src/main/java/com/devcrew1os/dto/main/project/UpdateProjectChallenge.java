@@ -15,5 +15,5 @@ import java.util.List;
 public class UpdateProjectChallenge {
     private Integer challengeId;
     private Integer updatedStatus;
-    private List<UpdateProjectTodo> todoList;
+    private List<UpdateProjectTodo> todoList = new ArrayList<>();
 }

@@ -62,8 +62,9 @@ public class ChallengeTransaction {
     private final UserStatRepository userStatRepo;
     private final ReviewChallengeRepository reviewStatRepo;
 
-    private final ChallengeCacheManager cacheManager;
     private final ObjectMapper objectMapper;
+    private final ChallengeCacheManager cacheManager;
+
     private final StringRedisTemplate stringRedisTemplate;
     private final RedisTemplate<String, Integer> integerRedisTemplate;
 
@@ -88,13 +89,13 @@ public class ChallengeTransaction {
         Map<Integer, String> categoryMap = getCategoryFromCache(userId);
         if(categoryMap.isEmpty()){
             categoryMap = getCategoryFromDB(userId);
-            logger.info("[ChallengeTrans][{}] Fetch category data from DB", userId);
+            logger.info("[ChallengeTrans][{}] Fetch category data from DB (Cache miss)", userId);
         }
         // 2. fetch challenge
         List<ChallengeListInfo> challengeDtoList = getChallengeCardFromCache(userId);
         if(challengeDtoList.isEmpty()){
             challengeDtoList = getChallengeCardFromDB(userId);
-            logger.info("[ChallengeTrans][{}] Fetch challenge card from DB", userId);
+            logger.info("[ChallengeTrans][{}] Fetch challenge card from DB (Cache miss)", userId);
         }
         // 3. return dto
         return new ChallengeListData(categoryMap, challengeDtoList);
@@ -110,7 +111,7 @@ public class ChallengeTransaction {
         ChallengeDetailData challengeDetailData = getChallengeDetailFromCache(userId, challengeId);
         if(challengeDetailData == null){
             challengeDetailData = getChallengeDetailFromDB(userId, challengeId);
-            logger.info("[ChallengeTrans][{}] Fetch challenge detail from DB", userId);
+            logger.info("[ChallengeTrans][{}] Fetch challenge detail from DB (Cache miss)", userId);
         }
         // 2. fetch review
         List<ChallengeReviewData> challengeReviewList = new ArrayList<>();
@@ -118,7 +119,6 @@ public class ChallengeTransaction {
             Pageable top4 = PageRequest.of(0, 4);
             List<ReviewChallenge> reviewList = reviewStatRepo.findAllByChallengeIdAndStatus(challengeId, DataStatus.DEPLOYED.getValue(), top4);
             if(reviewList.isEmpty()) {
-                logger.warn("[ChallengeTrans][{}] Failed to fetch review data", userId);
                 reviewList = Collections.emptyList();
             }
             challengeReviewList = reviewList.stream()
@@ -166,6 +166,7 @@ public class ChallengeTransaction {
                 throw new RuntimeException("Challenge not found with " + req.getChallengeId());
             }
 
+            // build entity
             ProjectChallenge projectChallenge = ProjectChallenge.builder()
                     .project(projectData)
                     .challenge(Challenge.builder()
@@ -182,10 +183,11 @@ public class ChallengeTransaction {
         }
 
         // 4-2. challenge todo register process
+        Challenge challengeRef = challengeRepo.getReferenceById(req.getChallengeId());
         List<ProjectTodo> projectTodoList = dto.getUnregisteredTodoIds().stream()
                 .map(todoId -> ProjectTodo.builder()
                         .project(projectData)
-                        .challenge(challengeRepo.getReferenceById(req.getChallengeId()))
+                        .challenge(challengeRef)
                         .todo(todoRepo.getReferenceById(todoId))
                         .status(ProjectTodoStatus.UNCHECK.getValue())
                         .build())
@@ -195,7 +197,7 @@ public class ChallengeTransaction {
         projectTodoRepo.saveAll(projectTodoList);
 
         // 6. record log
-        recordUserLog(userId, projectData.getId(), now, req, dto);
+        recordUserLog(userId, projectData.getId(), now, req);
         return true;
     }
 
@@ -250,37 +252,20 @@ public class ChallengeTransaction {
     private void recordUserLog(String userId,
                                Integer projectId,
                                LocalDateTime now,
-                               ChallengeRegisterReq req,
-                               ChallengeRegisterDTO dto
+                               ChallengeRegisterReq req
     ) {
-        List<ProjectLog> logList = new ArrayList<>();
-
-        if(dto.isChallengeRegisterNeed()){
-            ProjectLog challengeLog = ProjectLog.builder()
-                    .userId(userId)
-                    .projectId(projectId)
-                    .challengeId(req.getChallengeId())
-                    .userActionType(ProjectLoggingAction.ADD_CHALLENGE.getValue())
-                    .userActionAt(now)
-                    .build();
-            logList.add(challengeLog);
-        }
-        List<ProjectLog> todoLog = dto.getUnregisteredTodoIds().stream()
-                .map(todoId -> ProjectLog.builder()
-                        .userId(userId)
-                        .projectId(projectId)
-                        .challengeId(req.getChallengeId())
-                        .todoId(todoId)
-                        .userActionType(ProjectLoggingAction.ADD_TODO.getValue())
-                        .userActionAt(now)
-                        .build())
-                .collect(Collectors.toList());
-        logList.addAll(todoLog);
-        projectLogRepo.saveAll(logList);
+        ProjectLog challengeLog = ProjectLog.builder()
+                .userId(userId)
+                .projectId(projectId)
+                .challengeId(req.getChallengeId())
+                .userActionType(ProjectLoggingAction.ADD_CHALLENGE.getValue())
+                .userActionAt(now)
+                .build();
+        projectLogRepo.save(challengeLog);
     }
 
     /*===========================
-       유틸리티
+       유틸리티: category
     ===========================*/
     private Map<Integer, String> getCategoryFromCache(String userId) {
         try {
@@ -302,6 +287,29 @@ public class ChallengeTransaction {
         }
     }
 
+    private Map<Integer, String> getCategoryFromDB(String userId) {
+        try {
+            // 1. fetch category from db
+            List<Category> categoryList = categoryRepo.findAllByStatusDesc(DataStatus.DEPLOYED.getValue());
+            Map<Integer, String> categoryMap = new HashMap<>();
+
+            // 2. struct dto & update cache
+            if(categoryList != null && !categoryList.isEmpty()) {
+                categoryMap = categoryList.stream()
+                        .collect(Collectors.toMap(Category::getId, Category::getTitle));
+            }
+            cacheManager.refreshCategory(categoryMap);
+            return categoryMap;
+
+        } catch(Exception err) {
+            logger.error("[ChallengeCache][{}] Failed to fetch category from db", userId, err);
+            return Collections.emptyMap();
+        }
+    }
+
+    /*===========================
+       유틸리티: ChallengeCard
+    ===========================*/
     private List<ChallengeListInfo> getChallengeCardFromCache(String userId) {
         try {
             // 1. get challengeIds from cache
@@ -331,59 +339,17 @@ public class ChallengeTransaction {
                         try {
                             return objectMapper.readValue(json, ChallengeListInfo.class);
                         } catch (JsonProcessingException err) {
-                            logger.error("[ChallengeCache][{}] Failed to parse JSON challenge card from cache: {}", userId, json, err);
+                            logger.error("[ChallengeTrans][{}] Failed to parse JSON challenge card from cache: {}", userId, json, err);
                             return null;
                         }
                     })
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            logger.info("[ChallengeCache][{}] Successfully retrieved {} challenge cards from cache.", userId, resultList.size());
             return resultList;
 
         }  catch (Exception err) {
             logger.error("[ChallengeTrans][{}] An unexpected error occurred while getting challengeCard from cache.", userId, err);
             return Collections.emptyList();
-        }
-    }
-
-    private ChallengeDetailData getChallengeDetailFromCache(String userId, Integer ChallengeId) {
-        try {
-            // 1. get jsonChallengeDetail from cache
-            ValueOperations<String, String> valueOps = stringRedisTemplate.opsForValue();
-            String jsonChallengeDetail = valueOps.get(challengeDetailKey + ChallengeId);
-            if(jsonChallengeDetail == null || jsonChallengeDetail.trim().isEmpty()) {
-                logger.warn("[ChallengeTrans][{}] Failed to retrieve jsonChallengeDetail from cache", userId);
-                return null;
-            }
-            // 2. convert json to dto
-            return objectMapper.readValue(jsonChallengeDetail, ChallengeDetailData.class);
-
-        } catch(JsonProcessingException err) {
-            logger.error("[ChallengeCache][{}] Failed to parse JSON challenge detail from cache", userId, err);
-            return null;
-        } catch(Exception err) {
-            logger.error("[ChallengeTrans][{}] An unexpected error occurred while getting challengeDetail from cache.", userId, err);
-            return null;
-        }
-    }
-
-    private Map<Integer, String> getCategoryFromDB(String userId) {
-        try {
-            // 1. fetch category from db
-            List<Category> categoryList = categoryRepo.findAllByStatusDesc(DataStatus.DEPLOYED.getValue());
-            Map<Integer, String> categoryMap = new HashMap<>();
-
-            // 2. struct dto & update cache
-            if(categoryList != null && !categoryList.isEmpty()) {
-                categoryMap = categoryList.stream()
-                        .collect(Collectors.toMap(Category::getId, Category::getTitle));
-            }
-            cacheManager.refreshCategory(categoryMap);
-            return categoryMap;
-
-        } catch(Exception err) {
-            logger.error("[ChallengeCache][{}] Failed to fetch category from db", userId, err);
-            return Collections.emptyMap();
         }
     }
 
@@ -408,10 +374,35 @@ public class ChallengeTransaction {
             return dtoList;
 
         } catch(Exception err) {
-            logger.error("[ChallengeCache][{}] Failed to fetch ChallengeCard from db", userId, err);
+            logger.error("[ChallengeTrans][{}] Failed to fetch ChallengeCard from db", userId, err);
             return Collections.emptyList();
         }
     }
+
+    /*===========================
+       유틸리티: ChallengeDetail
+    ===========================*/
+    private ChallengeDetailData getChallengeDetailFromCache(String userId, Integer ChallengeId) {
+        try {
+            // 1. get jsonChallengeDetail from cache
+            ValueOperations<String, String> valueOps = stringRedisTemplate.opsForValue();
+            String jsonChallengeDetail = valueOps.get(challengeDetailKey + ChallengeId);
+            if(jsonChallengeDetail == null || jsonChallengeDetail.trim().isEmpty()) {
+                logger.warn("[ChallengeTrans][{}] Failed to retrieve jsonChallengeDetail from cache", userId);
+                return null;
+            }
+            // 2. convert json to dto
+            return objectMapper.readValue(jsonChallengeDetail, ChallengeDetailData.class);
+
+        } catch(JsonProcessingException err) {
+            logger.error("[ChallengeCache][{}] Failed to parse JSON challenge detail from cache", userId, err);
+            return null;
+        } catch(Exception err) {
+            logger.error("[ChallengeTrans][{}] An unexpected error occurred while getting challengeDetail from cache.", userId, err);
+            return null;
+        }
+    }
+
 
     private ChallengeDetailData getChallengeDetailFromDB(String userId, Integer challengeId) {
         try {
@@ -458,7 +449,7 @@ public class ChallengeTransaction {
             return dto;
 
         } catch(Exception err) {
-            logger.error("[ChallengeCache][{}] Failed to fetch ChallengeDetail from db", userId, err);
+            logger.error("[ChallengeTrans][{}] Failed to fetch ChallengeDetail from db", userId, err);
             return null;
         }
     }

@@ -34,7 +34,6 @@ public class AuthService {
             transaction.signupProcess(userId, req, isAdminReq);
             res.setSuccess(true);
             res.addMessage("[Info] Signup finish");
-            logger.info("[AuthService][{}] Signup successful", userId);
             return res;
 
         } catch(RuntimeException err) {
@@ -84,7 +83,6 @@ public class AuthService {
             transaction.loginProcess(userId);
             res.setSuccess(true);
             res.addMessage("[Info] Login successful");
-            logger.info("[AuthService][{}] Login successful", userId);
             return res;
 
         } catch(RuntimeException err) {
@@ -135,7 +133,6 @@ public class AuthService {
         }
         res.setSuccess(true);
         res.addMessage("[Info] Logout successful");
-        logger.info("[AuthService][{}] Logout successful", userId);
         return res;
     }
 

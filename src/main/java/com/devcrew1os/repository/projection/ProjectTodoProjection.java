@@ -4,10 +4,5 @@ public interface ProjectTodoProjection {
     Integer getId();
     Integer getStatus();
     Integer getChallengeId();
-    Todo getTodo();
-
-    interface Todo {
-        Integer getId();
-        String getDesc();
-    }
+    String getTodoDesc();
 }
