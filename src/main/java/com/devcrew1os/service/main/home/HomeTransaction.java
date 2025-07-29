@@ -4,11 +4,15 @@ import com.devcrew1os.common.enums.DataStatus;
 import com.devcrew1os.dto.main.home.HomeChallengeData;
 import com.devcrew1os.dto.main.home.HomeData;
 import com.devcrew1os.dto.main.home.HomeUserData;
+import com.devcrew1os.entity.challenge.Category;
 import com.devcrew1os.entity.challenge.ChallengeStat;
 import com.devcrew1os.entity.user.Users;
+import com.devcrew1os.repository.challenge.CategoryRepository;
 import com.devcrew1os.repository.challenge.ChallengeStatRepository;
 import com.devcrew1os.repository.users.UsersRepository;
+import com.devcrew1os.service.main.challenge.ChallengeCacheManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -32,12 +36,16 @@ import java.util.stream.Collectors;
 public class HomeTransaction {
 
     private final UsersRepository userRepo;
+    private final CategoryRepository categoryRepo;
     private final ChallengeStatRepository statRepo;
 
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate redisTemplate;
+    private final ChallengeCacheManager cacheManager;
     private final ReentrantLock cacheLock = new ReentrantLock();
 
+    @Value("${devcrew1os.redis.key.challenge.category}")
+    private String categoryKey;
     @Value("${devcrew1os.redis.key.home.ranking.id}")
     private String rankingIdKey;
     @Value("${devcrew1os.redis.key.home.ranking.data}")
@@ -63,13 +71,38 @@ public class HomeTransaction {
         );
 
         // 2-1. fetch data from cache: challenge
+        Map<Integer, String> categoryData = getCategory(userId);
         List<HomeChallengeData> challengeList = getHomeRanking(userId);
-        return new HomeData(userData, challengeList);
+        return new HomeData(userData, categoryData, challengeList);
     }
 
     /*===========================
        홈화면 순위 조회
     ===========================*/
+    @Transactional(readOnly = true)
+    public Map<Integer, String> getCategory(String userId) {
+        // 1. fetch data from cache
+        Map<Integer, String> categoryMap = getCategoryFromCache(userId);
+        if(!categoryMap.isEmpty()){
+            return categoryMap;
+        }
+
+        // 2. fetch data from db: cache miss
+        cacheLock.lock();
+        try {
+            // 2-1. check cache again
+            categoryMap = getCategoryFromCache(userId);
+            if(!categoryMap.isEmpty()){
+                return categoryMap;
+            }
+            // 3. get data from db
+            logger.warn("[HomeTrans][{}] Category at cache is still empty after acquiring lock. Fetching from DB...", userId);
+            return getCategoryFromDB(userId);
+        } finally {
+            cacheLock.unlock();
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<HomeChallengeData> getHomeRanking(String userId) {
         // 1. fetch data from cache
@@ -87,7 +120,7 @@ public class HomeTransaction {
                 return challengeListFromCache;
             }
             // 3. get data from db
-            logger.warn("[HomeTrans][{}] Cache is still empty after acquiring lock. Fetching from DB...", userId);
+            logger.warn("[HomeTrans][{}] Challenge at cache is still empty after acquiring lock. Fetching from DB...", userId);
             return getChallengeDataFromDB(userId);
         } finally {
             cacheLock.unlock();
@@ -95,7 +128,50 @@ public class HomeTransaction {
     }
 
     /*===========================
-       유틸리티
+        유틸리티: category
+    ===========================*/
+    private Map<Integer, String> getCategoryFromCache(String userId) {
+        try {
+            // 1. get data from cache
+            ValueOperations<String, String> valueOps = redisTemplate.opsForValue();
+            String jsonCategory = valueOps.get(categoryKey);
+            if (jsonCategory == null || jsonCategory.trim().isEmpty()) {
+                logger.warn("[ChallengeTrans][{}] Category cache is empty or not found for key: {}", userId, categoryKey);
+                return Collections.emptyMap();
+            }
+            // 2, convert json to dto
+            return objectMapper.readValue(jsonCategory, new TypeReference<Map<Integer, String>>() {});
+        } catch (JsonProcessingException err) {
+            logger.error("[ChallengeTrans][{}] Failed to parse JSON category data from cache.", userId, err);
+            return Collections.emptyMap();
+        } catch (Exception err) {
+            logger.error("[ChallengeTrans][{}] An unexpected error occurred while getting category from cache.", userId, err);
+            return Collections.emptyMap();
+        }
+    }
+
+    private Map<Integer, String> getCategoryFromDB(String userId) {
+        try {
+            // 1. fetch category from db
+            List<Category> categoryList = categoryRepo.findAllByStatusDesc(DataStatus.DEPLOYED.getValue());
+            Map<Integer, String> categoryMap = new HashMap<>();
+
+            // 2. struct dto & update cache
+            if(categoryList != null && !categoryList.isEmpty()) {
+                categoryMap = categoryList.stream()
+                        .collect(Collectors.toMap(Category::getId, Category::getTitle));
+            }
+            cacheManager.refreshCategory(categoryMap);
+            return categoryMap;
+
+        } catch(Exception err) {
+            logger.error("[ChallengeCache][{}] Failed to fetch category from db", userId, err);
+            return Collections.emptyMap();
+        }
+    }
+
+    /*===========================
+       유틸리티: challenges
     ===========================*/
     // Func: Get challenges from Redis
     private List<HomeChallengeData> getChallengeDataFromCache(String userId) {

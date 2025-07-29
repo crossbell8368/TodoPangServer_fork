@@ -220,12 +220,10 @@ public class ChallengeTransaction {
                 .collect(Collectors.toSet());
 
         if(unregisteredTodos.isEmpty()){
-            logger.info("[ChallengeTrans][{}] Request Challenge({}) and all requested Todos({}) exist at project", userId, req.getChallengeId(), requestTodos);
+            return new ChallengeRegisterDTO(false, Collections.emptySet());
         } else {
-            logger.info("[ChallengeTrans][{}] ProjectChallenge {} exists. New todos to add: {}. Existing: {}. Requested: {}",
-                    userId, req.getChallengeId(), unregisteredTodos, registeredTodos, requestTodos);
+            return new ChallengeRegisterDTO(true, unregisteredTodos);
         }
-        return new ChallengeRegisterDTO(false, unregisteredTodos);
     }
 
     public boolean isExistChallenge(String userId, int challengeId, List<Integer> todoIds) {

@@ -39,14 +39,12 @@ public interface ProjectTodoRepository extends JpaRepository<ProjectTodo, Intege
     @Query("SELECT COUNT(pt) FROM ProjectTodo pt " +
             "WHERE pt.project.id = :projectId " +
             "AND pt.challenge.id = :challengeId " +
-            "AND (pt.status = :firstStatus OR pt.status = :secondStatus) " +
-            "AND pt.status <> :finalStatus")
+            "AND (pt.status = :firstStatus OR pt.status = :secondStatus) ")
     int countActiveTodoCount(
             @Param("projectId") int projectId,
             @Param("challengeId") int challengeId,
             @Param("firstStatus") int firstStatus,
-            @Param("secondStatus") int secondStatus,
-            @Param("finalStatus") int finalStatus
+            @Param("secondStatus") int secondStatus
     );
 
     @Query("SELECT pt.id as id, pt.status as status, pt.challenge.id as challengeId, t.desc as todoDesc " +

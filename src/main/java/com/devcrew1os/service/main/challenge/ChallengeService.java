@@ -106,7 +106,6 @@ public class ChallengeService {
             } else {
                 res.setSuccess(true);
                 res.addMessage("[Info] Successfully registered challenge data");
-                logger.info("[ChallengeService][{}] Successfully register challenge data", userId);
                 return res;
             }
 

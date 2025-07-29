@@ -49,7 +49,7 @@ public class TokenService {
         if (cachedId != null) {
             logger.info("[TokenService][{}] Successfully removed token data", cachedId);
         } else {
-            logger.warn("[TokenService] Token not found in cache, already expired or removed: {}", idToken);
+            logger.warn("[TokenService] Token not found in cache, already expired or removed");
         }
     }
 }

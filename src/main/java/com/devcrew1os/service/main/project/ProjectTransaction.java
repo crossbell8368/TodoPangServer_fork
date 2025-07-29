@@ -14,8 +14,6 @@ import com.devcrew1os.repository.projection.ProjectTodoProjection;
 import com.devcrew1os.repository.users.UserStatRepository;
 import com.devcrew1os.repository.users.UsersRepository;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,8 +30,6 @@ public class ProjectTransaction {
     private final ProjectTodoRepository projectTodoRepo;
     private final ProjectChallengeRepository projectChallengeRepo;
     private final ProjectLogRepository projectLogRepo;
-
-    private static final Logger logger = LoggerFactory.getLogger(ProjectTransaction.class);
 
     /*===========================
        전체 목표조회
@@ -84,102 +80,118 @@ public class ProjectTransaction {
     ===========================*/
     @Transactional
     public void updateProjectProcess(String userId, UpdateProjectReq req) {
-
-        // fetch data: projectId
         Integer projectId = usersRepo.findProjectIdByUserId(userId);
-        if(projectId == null) {
-            logger.error("[ProjectTrans][{}] Request users project data not found", userId);
+        if (projectId == null) {
             throw new RuntimeException("Request users project data not found");
         }
         LocalDateTime now = LocalDateTime.now();
         List<ProjectLog> logs = new ArrayList<>();
-        for(UpdateProjectChallenge challenge : req.getChallengeList()) {
+        Map<Integer, Integer> challengesToCheck = new HashMap<>();
 
-            Integer originalChallengeId = projectChallengeRepo.getOriginalChallengeId(projectId, challenge.getChallengeId());
-            if(originalChallengeId == null) {
-                logger.error("[ProjectTrans][{}] Request challenge data not found", userId);
+        for (UpdateProjectChallenge challengeDto : req.getChallengeList()) {
+            Integer originalChallengeId = projectChallengeRepo.getOriginalChallengeId(projectId, challengeDto.getChallengeId());
+            if (originalChallengeId == null) {
                 throw new RuntimeException("Request challenge data not found");
             }
-            // challenge update
-            if(challenge.getChallengeId() != null && challenge.getUpdatedStatus() != null) {
-                ProjectLog newChallengeLog = ProjectLog.builder()
-                        .userId(userId)
-                        .projectId(projectId)
-                        .challengeId(originalChallengeId)
-                        .userActionAt(now)
-                        .build();
+            updateChallengeProcess(userId, projectId, originalChallengeId, challengeDto, now, logs);
 
-                switch(ProjectChallengeStatus.fromValue(challenge.getUpdatedStatus())){
-                    case FINISHED:
-                        projectChallengeRepo.updateProjectChallengeStatus(
-                                ProjectChallengeStatus.FINISHED.getValue(),
-                                projectId,
-                                challenge.getChallengeId()
-                        );
-                        projectTodoRepo.updateAllTodosByProjectIdAndChallengeId(
-                                ProjectTodoStatus.COMPLETE.getValue(),
-                                projectId,
-                                challenge.getChallengeId()
-                        );
-                        userStatRepo.updateCompleteChallenges(userId);
+            updateTodoProcess(userId, projectId, challengeDto.getChallengeId(), originalChallengeId, challengeDto.getTodoList(), now, logs, challengesToCheck);
+        }
+        if(!challengesToCheck.isEmpty()) {
+            checkChallengeRemoval(userId, projectId, challengesToCheck, now, logs);
+        }
+        if (!logs.isEmpty()) {
+            projectLogRepo.saveAll(logs);
+        }
+    }
 
-                        newChallengeLog.setUserActionType(ProjectLoggingAction.COMPLETE_CHALLENGE.getValue());
-                        logs.add(newChallengeLog);
-                        break;
+    private void updateChallengeProcess(
+            String userId,
+            int projectId,
+            int originalChallengeId,
+            UpdateProjectChallenge challengeDto,
+            LocalDateTime now,
+            List<ProjectLog> logs
+    ) {
+        if (challengeDto.getUpdatedStatus() == null) return;
 
-                    case REMOVED:
-                        if(projectTodoRepo.countActiveTodoCount(
-                                projectId,
-                                challenge.getChallengeId(),
-                                ProjectTodoStatus.CHECK.getValue(),
-                                ProjectTodoStatus.UNCHECK.getValue(),
-                                ProjectTodoStatus.COMPLETE.getValue()) == 0
-                        ) {
-                            projectChallengeRepo.updateProjectChallengeStatus(
-                                    ProjectChallengeStatus.REMOVED.getValue(),
-                                    projectId,
-                                    challenge.getChallengeId()
-                            );
-                            newChallengeLog.setUserActionType(ProjectLoggingAction.REMOVE_CHALLENGE.getValue());
-                            logs.add(newChallengeLog);
-                        } else {
-                            throw new RuntimeException("Invalid challenge delete request");
-                        }
-                        break;
-                }
+        if (ProjectChallengeStatus.fromValue(challengeDto.getUpdatedStatus()) == ProjectChallengeStatus.FINISHED) {
+            projectChallengeRepo.updateProjectChallengeStatus(ProjectChallengeStatus.FINISHED.getValue(), projectId, challengeDto.getChallengeId());
+            projectTodoRepo.updateAllTodosByProjectIdAndChallengeId(ProjectTodoStatus.COMPLETE.getValue(), projectId, challengeDto.getChallengeId());
+            userStatRepo.updateCompleteChallenges(userId);
+
+            logs.add(createLog(userId, projectId, originalChallengeId, null, now, ProjectLoggingAction.COMPLETE_CHALLENGE));
+        }
+    }
+
+    private void updateTodoProcess(
+            String userId,
+            int projectId,
+            int projectChallengeId,
+            int originalChallengeId,
+            List<UpdateProjectTodo> todoList,
+            LocalDateTime now,
+            List<ProjectLog> logs,
+            Map<Integer, Integer> challengesToCheck
+    ){
+        for (UpdateProjectTodo todo : todoList) {
+            projectTodoRepo.updateTodoStatusByProjectIdAndChallengeId(todo.getUpdatedStatus(), projectId, todo.getTodoId());
+
+            ProjectLoggingAction actionType = null;
+            switch (ProjectTodoStatus.fromValue(todo.getUpdatedStatus())) {
+                case CHECK:
+                    actionType = ProjectLoggingAction.COMPLETE_TODO;
+                    break;
+                case UNCHECK:
+                    actionType = ProjectLoggingAction.REVERT_TODO;
+                    break;
+                case REMOVED:
+                    actionType = ProjectLoggingAction.REMOVE_TODO;
+                    challengesToCheck.put(projectChallengeId, originalChallengeId);
+                    break;
             }
-            // Todo update
-            for(UpdateProjectTodo todo : challenge.getTodoList()) {
-                ProjectLog newTodoLog = ProjectLog.builder()
-                    .userId(userId)
-                    .projectId(projectId)
-                    .challengeId(originalChallengeId)
-                    .todoId(todo.getTodoId())
-                    .userActionAt(now)
-                    .build();
-
-                projectTodoRepo.updateTodoStatusByProjectIdAndChallengeId(
-                        todo.getUpdatedStatus(),
-                        projectId,
-                        todo.getTodoId()
-                );
-
-                switch(ProjectTodoStatus.fromValue(todo.getUpdatedStatus())) {
-                    case CHECK:
-                        newTodoLog.setUserActionType(ProjectLoggingAction.COMPLETE_TODO.getValue());
-                        logs.add(newTodoLog);
-                        break;
-                    case UNCHECK:
-                        newTodoLog.setUserActionType(ProjectLoggingAction.REVERT_TODO.getValue());
-                        logs.add(newTodoLog);
-                        break;
-                    case REMOVED:
-                        newTodoLog.setUserActionType(ProjectLoggingAction.REMOVE_TODO.getValue());
-                        logs.add(newTodoLog);
-                        break;
-                }
+            if (actionType != null) {
+                logs.add(createLog(userId, projectId, originalChallengeId, todo.getTodoId(), now, actionType));
             }
         }
-        projectLogRepo.saveAll(logs);
+    }
+
+    private void checkChallengeRemoval(
+            String userId,
+            int projectId,
+            Map<Integer, Integer> challengesToCheck,
+            LocalDateTime now,
+            List<ProjectLog> logs
+    ) {
+        for (Integer projectChallengeId : challengesToCheck.keySet()) {
+            int activeTodoCount = projectTodoRepo.countActiveTodoCount(
+                    projectId,
+                    challengesToCheck.get(projectChallengeId),
+                    ProjectTodoStatus.CHECK.getValue(),
+                    ProjectTodoStatus.UNCHECK.getValue()
+            );
+            if (activeTodoCount == 0) {
+                projectChallengeRepo.updateProjectChallengeStatus(ProjectChallengeStatus.REMOVED.getValue(), projectId, projectChallengeId);
+                logs.add(createLog(userId, projectId, challengesToCheck.get(projectChallengeId), null, now, ProjectLoggingAction.REMOVE_CHALLENGE));
+            }
+        }
+    }
+
+    private ProjectLog createLog(
+            String userId,
+            int projectId,
+            Integer challengeId,
+            Integer todoId,
+            LocalDateTime now,
+            ProjectLoggingAction action
+    ) {
+        return ProjectLog.builder()
+                .userId(userId)
+                .projectId(projectId)
+                .challengeId(challengeId)
+                .todoId(todoId)
+                .userActionAt(now)
+                .userActionType(action.getValue())
+                .build();
     }
 }
